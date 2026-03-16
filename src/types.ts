@@ -30,6 +30,8 @@ export interface ScoreExplanation {
   readonly normalizedBM25: number;
   readonly boosts: Record<string, number>;
   readonly formula: string;
+  /** Domain-specific fields (commitBoost, parentBoost, etc.). */
+  readonly [key: string]: unknown;
 }
 
 /** Scoring configuration with named boost terms. */
@@ -46,8 +48,10 @@ export interface ScoringConfig {
 export interface EmbeddingConfig {
   readonly model: string;
   readonly dimensions: number;
-  readonly provider: "openai" | "ollama";
+  readonly provider: "openai" | "ollama" | "remote";
   readonly ollamaUrl?: string;
+  readonly remoteUrl?: string;
+  readonly remoteAuth?: string;
 }
 
 /** Base config every EASIER project extends. */
@@ -79,7 +83,12 @@ export interface DocumentStore<TMeta = Record<string, unknown>> {
     queryEmbedding: number[],
     limit: number,
   ): Promise<
-    Array<{ id: string; similarity: number; metadata: TMeta; searchText: string }>
+    Array<{
+      id: string;
+      similarity: number;
+      metadata: TMeta;
+      searchText: string;
+    }>
   >;
   remove(ids: string[]): Promise<void>;
   count(): Promise<number>;
@@ -94,7 +103,13 @@ export interface PipelineResult {
   readonly costUsd: number;
 }
 
-/** A function that can execute SQL with positional params. */
-export interface SqlRunner {
-  run(sql: string, params: unknown[]): Promise<void>;
+/** Store-agnostic database operations — query + run. */
+export interface StoreOps {
+  query: <T>(sql: string, params?: unknown[]) => Promise<T[]>;
+  run: (sql: string, params?: unknown[]) => Promise<void>;
 }
+
+/**
+ * @deprecated Use `StoreOps` instead. Will be removed in 0.2.0.
+ */
+export type SqlRunner = Pick<StoreOps, "run">;
