@@ -1,5 +1,5 @@
 import type { EmbeddingProvider } from "./provider";
-import type { EasierConfig } from "../types";
+import type { EmbeddingConfig } from "../types";
 import { OpenAIEmbeddingProvider } from "./providers/openai";
 import { OllamaEmbeddingProvider } from "./providers/ollama";
 import { RemoteEmbeddingProvider } from "./providers/remote";
@@ -7,13 +7,16 @@ import { logEvent } from "../logging/logging";
 
 const MAX_EMBED_CHARS = 4_000;
 
+/** Structural type — any config with an `embedding` field works. */
+type EmbedderConfig = { embedding: EmbeddingConfig };
+
 function sanitize(text: string): string {
   if (text.length === 0) return " ";
   return text.length > MAX_EMBED_CHARS ? text.slice(0, MAX_EMBED_CHARS) : text;
 }
 
 /** Build a cache key from embedding config. */
-function providerCacheKey(config?: EasierConfig): string {
+function providerCacheKey(config?: EmbedderConfig): string {
   if (!config) return "openai:text-embedding-3-small:1536:";
   const { provider, model, dimensions, ollamaUrl, remoteUrl } =
     config.embedding;
@@ -21,7 +24,7 @@ function providerCacheKey(config?: EasierConfig): string {
 }
 
 /** Construct a new provider from config. */
-function createProvider(config?: EasierConfig): EmbeddingProvider {
+function createProvider(config?: EmbedderConfig): EmbeddingProvider {
   if (!config) return new OpenAIEmbeddingProvider();
   const { provider, model, dimensions, ollamaUrl, remoteUrl, remoteAuth } =
     config.embedding;
@@ -40,7 +43,7 @@ function createProvider(config?: EasierConfig): EmbeddingProvider {
 const providerCache = (() => {
   const cache = new Map<string, EmbeddingProvider>();
   return {
-    getOrCreate(config?: EasierConfig): EmbeddingProvider {
+    getOrCreate(config?: EmbedderConfig): EmbeddingProvider {
       const key = providerCacheKey(config);
       const cached = cache.get(key);
       if (cached) return cached;
@@ -55,7 +58,9 @@ const providerCache = (() => {
 })();
 
 /** Get or create the configured embedding provider. */
-export function getProvider(config?: EasierConfig): EmbeddingProvider {
+export function getProvider(
+  config?: { embedding: EmbeddingConfig },
+): EmbeddingProvider {
   return providerCache.getOrCreate(config);
 }
 
@@ -66,7 +71,7 @@ export function resetProvider(): void {
 
 export async function embed(
   texts: string | string[],
-  config?: EasierConfig,
+  config?: { embedding: EmbeddingConfig },
 ): Promise<number[][]> {
   const input = (Array.isArray(texts) ? texts : [texts]).map(sanitize);
   const result = await getProvider(config).embed(input);
@@ -76,7 +81,7 @@ export async function embed(
 
 export async function embedSingle(
   text: string,
-  config?: EasierConfig,
+  config?: { embedding: EmbeddingConfig },
 ): Promise<number[]> {
   return getProvider(config).embedSingle(sanitize(text));
 }
