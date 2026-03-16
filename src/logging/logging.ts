@@ -6,6 +6,7 @@ import { createHash } from "crypto";
 
 interface CorrelationContext {
   sessionId: string;
+  [key: string]: unknown; // domain-specific fields (repoId, collectionId, etc.)
 }
 
 const SESSION_ID = createHash("sha256")
@@ -24,6 +25,16 @@ export function getSessionId(): string {
 }
 
 // ---------------------------------------------------------------------------
+// Path hashing — avoid logging raw file system paths (PII-adjacent)
+// STEERING #1 (discovery layer — don't leak paths)
+// ---------------------------------------------------------------------------
+
+/** Hash a path to a 16-char hex string to avoid logging PII-adjacent filesystem paths. */
+export function hashPath(p: string): string {
+  return createHash("sha256").update(p).digest("hex").slice(0, 16);
+}
+
+// ---------------------------------------------------------------------------
 // Configuration
 // ---------------------------------------------------------------------------
 
@@ -31,7 +42,10 @@ let validDomains: Set<string> | null = null;
 let envVar = "EASIER_LOG_EVENTS";
 
 /** Initialize logging with domain-specific configuration. */
-export function initLogging(opts: { domains: string[]; envVar?: string }): void {
+export function initLogging(opts: {
+  domains: string[];
+  envVar?: string;
+}): void {
   validDomains = new Set(opts.domains);
   if (opts.envVar) envVar = opts.envVar;
 }
@@ -87,12 +101,20 @@ function toStructuredError(err: unknown): StructuredError {
   return { "error.type": "Unknown", "error.message": String(err) };
 }
 
-export function withTimingSync<T>(event: string, extra: Record<string, unknown>, fn: () => T): T {
+export function withTimingSync<T>(
+  event: string,
+  extra: Record<string, unknown>,
+  fn: () => T,
+): T {
   if (!isEnabled()) return fn();
   const start = performance.now();
   try {
     const result = fn();
-    logEvent({ event, duration_ms: Math.round(performance.now() - start), ...extra });
+    logEvent({
+      event,
+      duration_ms: Math.round(performance.now() - start),
+      ...extra,
+    });
     return result;
   } catch (err) {
     logEvent({
@@ -114,7 +136,11 @@ export async function withTimingAsync<T>(
   const start = performance.now();
   try {
     const result = await fn();
-    logEvent({ event, duration_ms: Math.round(performance.now() - start), ...extra });
+    logEvent({
+      event,
+      duration_ms: Math.round(performance.now() - start),
+      ...extra,
+    });
     return result;
   } catch (err) {
     logEvent({
