@@ -1,0 +1,43 @@
+{
+  "name": "@easier/core",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./embedding": "./src/embedding/provider.ts",
+    "./db": "./src/db/util.ts",
+    "./db/sqlite": "./src/db/sqlite.ts",
+    "./db/pg": "./src/db/pg.ts",
+    "./db/migrate": "./src/db/migrate.ts",
+    "./search": "./src/search/scoring.ts",
+    "./search/bm25": "./src/search/bm25.ts",
+    "./config": "./src/config/config.ts",
+    "./cost": "./src/cost/cost.ts",
+    "./logging": "./src/logging/logging.ts",
+    "./cli": "./src/cli/cli.ts"
+  },
+  "files": [
+    "src/",
+    "README.md"
+  ],
+  "dependencies": {
+    "openai": "^4.77.0",
+    "sqlite-vec": "^0.1.7-alpha.2"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.7.0",
+    "eslint": "^9.0.0",
+    "prettier": "^3.4.0",
+    "typescript-eslint": "^8.56.1"
+  },
+  "scripts": {
+    "typecheck": "bunx tsc --noEmit",
+    "lint": "bunx eslint --cache src/",
+    "lint:fix": "bunx eslint --cache --fix src/",
+    "format": "bunx prettier --write src/ test/",
+    "check": "bun run typecheck && bun run lint",
+    "test": "bun test"
+  }
+}
