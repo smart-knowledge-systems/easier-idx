@@ -17,12 +17,4 @@ bun test                 # Run tests
 
 ## Architecture
 
-EASIER = Embedding-Augmented Semantic Index for Efficient Retrieval
-
-This is a framework for building semantic search indexes where:
-- Retrieval is the terminal operation (no RAG, no generation)
-- Index stores embeddings of metadata/structural descriptors, not verbatim content
-- The consumer (human or agent) decides what to do with ranked results
-
-Domain projects implement `Collector<TMeta>` and `DocumentStore<TMeta>` interfaces.
-The framework provides embedding, storage, scoring, config, cost tracking, and CLI utilities.
+See [README.md](README.md) for architecture overview, design principles, and usage examples.

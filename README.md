@@ -1,0 +1,236 @@
+# @easier/core
+
+Framework for building **EASIER** systems — **E**mbedding-**A**ugmented **S**emantic **I**ndex for **E**fficient **R**etrieval.
+
+## What is EASIER?
+
+A search pattern where:
+
+- **Retrieval is the terminal operation.** The query returns a ranked list of matches. No generation, no prompt stuffing, no RAG pipeline.
+- **The index stores descriptors, not content.** Embeddings of metadata, structure, and attributes — a function's signature and purpose rather than its implementation.
+- **The consumer decides what to do with results.** Human or agent, the caller owns the next step.
+
+This distinguishes EASIER from RAG: RAG retrieves content to feed a generator; EASIER retrieves descriptors to inform a decision.
+
+## Install
+
+```bash
+bun add @easier/core
+```
+
+Requires [Bun](https://bun.sh) runtime.
+
+## Quick start
+
+```typescript
+import {
+  embed, embedSingle, buildIndex, bm25Score,
+  computeHybridScore, serializeEmbedding,
+  loadConfig, type EasierConfig, type Document,
+} from "@easier/core";
+
+// 1. Define your document type
+interface PaperMeta {
+  doi: string;
+  title: string;
+  authors: string[];
+  year: number;
+}
+
+// 2. Extend the base config
+interface MyConfig extends EasierConfig {
+  crossref: { politeEmail: string };
+}
+
+// 3. Load config (merges ~/.config/myapp/config.json + .myapp.json)
+const config = await loadConfig<MyConfig>("myapp", defaults);
+
+// 4. Embed and search
+const queryVec = await embedSingle("transformer protein folding", config);
+const candidates = await myStore.vectorSearch(queryVec, 100);
+
+// 5. Score with BM25 hybrid + domain boosts
+const bm25Idx = buildIndex(candidates.map(c => ({ id: c.id, text: c.searchText })));
+const bm25Scores = bm25Score(bm25Idx, "transformer protein folding");
+const maxBM25 = Math.max(...bm25Scores.values(), 0);
+
+const results = candidates.map(c => ({
+  ...c,
+  finalScore: computeHybridScore(c.similarity, {
+    bm25Raw: bm25Scores.get(c.id) ?? 0,
+    bm25Max: maxBM25,
+    hybridWeight: 0.3,
+    boosts: {
+      recency: { weight: 0.1, value: (c.metadata.year - 2000) / 25 },
+    },
+  }),
+})).sort((a, b) => b.finalScore - a.finalScore);
+```
+
+## StoreOps — backend-agnostic database access
+
+```typescript
+import {
+  getSqlite, createSqliteStoreOps, checkCostCap, getCostSummary,
+  type StoreOps,
+} from "@easier/core";
+
+// Open a connection and wrap it in StoreOps
+const db = getSqlite({ path: "./my-index.db" });
+const ops: StoreOps = createSqliteStoreOps(db);
+
+// Write SQL with pg-style $1 placeholders — auto-converted for SQLite
+await ops.run("INSERT INTO items (name) VALUES ($1)", ["example"]);
+const rows = await ops.query<{ id: number; name: string }>("SELECT * FROM items");
+
+// Budget guardrails
+const cap = await checkCostCap(ops, 5.0, "sqlite");
+if (cap.exceeded) console.warn(`Cost cap exceeded: $${cap.current}`);
+
+// Cost reporting
+const summary = await getCostSummary(ops);
+```
+
+## What you implement vs what the framework provides
+
+### Framework provides
+
+| Module | What it does |
+|--------|-------------|
+| **Embedding** | `EmbeddingProvider` interface + OpenAI, Ollama, and Remote HTTP providers. Provider caching, text sanitization, batch processing with retry. |
+| **Database** | SQLite (with sqlite-vec) and PostgreSQL connection management. `StoreOps` factory for backend-agnostic query/run. Embedding serialization/deserialization. Parameterized migration runner. |
+| **Search** | BM25 tokenizer + scorer + `buildBM25Context` helper. Generic hybrid scoring with named boost terms. Composable reranker interface. Query expansion with configurable abbreviation dictionaries. |
+| **Eval** | Precision@k, HitRate@k, MRR, nDCG, Recall metric functions. Quality gate assertions for regression testing. |
+| **Config** | `loadConfig<T>(appName, defaults)` — deep-merges defaults, global (`~/.config/{appName}/config.json`), and local (`.{appName}.json`). |
+| **Cost** | Per-model pricing, AsyncLocalStorage-scoped cost tracking, projected cost estimation, `checkCostCap` budget guardrails, `getCostSummary` reporting. |
+| **Logging** | Structured JSON logging with configurable domains, extensible correlation context, `hashPath` for PII-safe identifiers, and timing wrappers. |
+| **CLI** | Argument parser with configurable value flags. |
+
+### You implement
+
+| Component | Example |
+|-----------|---------|
+| `Collector<TMeta>` | Fetch papers from crossref.org, scan files from disk, pull packages from a registry |
+| `DocumentStore<TMeta>` | Your schema, your tables, your queries — the framework provides the connection and migration runner |
+| Search function | Compose vector search + BM25 + framework scoring with your domain's boost signals |
+| CLI commands | Wire your domain logic to the framework's arg parser |
+| Config extension | `interface MyConfig extends EasierConfig { ... }` |
+
+## Core types
+
+```typescript
+// A document to be indexed
+interface Document<TMeta> {
+  id: string;
+  embeddingText: string;  // what gets embedded (descriptors)
+  searchText: string;     // what BM25 matches against
+  metadata: TMeta;
+}
+
+// A scored search result
+interface SearchResult<TMeta> {
+  id: string;
+  cosineSimilarity: number;
+  finalScore: number;
+  metadata: TMeta;
+  bm25Score?: number;
+  explanation?: ScoreExplanation;
+}
+
+// Collector — discovers documents from an external source
+interface Collector<TMeta> {
+  collect(options?: { since?: Date }): AsyncIterable<Document<TMeta>>;
+}
+
+// DocumentStore — domain projects implement per their schema
+interface DocumentStore<TMeta> {
+  upsert(doc: Document<TMeta>, embedding: number[]): Promise<void>;
+  upsertBatch(items: Array<{ doc: Document<TMeta>; embedding: number[] }>): Promise<void>;
+  vectorSearch(queryEmbedding: number[], limit: number): Promise<Array<{ id: string; similarity: number; metadata: TMeta; searchText: string }>>;
+  remove(ids: string[]): Promise<void>;
+  count(): Promise<number>;
+}
+```
+
+## Eval and quality gates
+
+```typescript
+import { precisionAtK, mrr, ndcg, evaluateGates, allGatesPassed } from "@easier/core";
+
+// Compute metrics
+const p5 = precisionAtK(returnedIds, expectedIds, 5);
+const mrrScore = mrr(returnedIds, expectedIds);
+
+// Define quality gates as regression guards
+const gates = [
+  { metric: "precisionAtK" as const, threshold: 0.80, k: 5 },
+  { metric: "mrr" as const, threshold: 0.70 },
+];
+
+const results = evaluateGates(summary, gates);
+if (!allGatesPassed(results)) {
+  console.error("Quality regression detected");
+}
+```
+
+## Reranking
+
+```typescript
+import { applyRerankers, type Reranker } from "@easier/core";
+
+// Implement domain-specific rerankers
+const citationReranker: Reranker<PaperMeta> = {
+  name: "citations",
+  async computeBoosts(results) {
+    const boosts = new Map<string, number>();
+    for (const r of results) {
+      boosts.set(r.id, Math.log1p(r.metadata.citationCount) / 10);
+    }
+    return boosts;
+  },
+};
+
+// Apply rerankers to results
+const reranked = await applyRerankers(results, [citationReranker], {
+  enabled: true,
+  weights: { citations: 0.15 },
+});
+```
+
+## Query expansion
+
+```typescript
+import { expandQuery, CODE_ABBREVIATIONS } from "@easier/core";
+
+// Code-centric (default)
+expandQuery("getUserAuth");
+// → "get User Auth getUserAuth authentication"
+
+// Custom abbreviations for academic search
+const ACADEMIC = { ML: "machine learning", NLP: "natural language processing" };
+expandQuery("ML transformers", ACADEMIC);
+// → "ML machine learning transformers"
+```
+
+## Subpath imports
+
+Import specific modules to minimize bundle impact:
+
+```typescript
+import { computeHybridScore } from "@easier/core/search";
+import { getSqlite } from "@easier/core/db/sqlite";
+import { loadConfig } from "@easier/core/config";
+import { precisionAtK } from "@easier/core/eval/metrics";
+```
+
+## Design principles
+
+1. **Retrieval terminates at the match.** No generation step, no prompt construction, no grounded response.
+2. **Index shape, not content.** Embed signatures, purposes, and attributes — not raw text.
+3. **The consumer is programmatic.** Results are structured data for tools and agents, not prose for humans.
+4. **Scoring is composable.** Cosine similarity + BM25 + named domain boosts. You define the boost signals.
+5. **Domain projects own their schema.** The framework provides connections and migrations, not tables.
+
+## License
+
+Apache-2.0
