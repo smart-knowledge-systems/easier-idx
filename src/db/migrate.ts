@@ -15,7 +15,9 @@ interface MigrationFile {
   sql: string;
 }
 
-export type MigrationResult = { tag: "ok"; versions: number[] } | { tag: "err"; error: Error };
+export type MigrationResult =
+  | { tag: "ok"; versions: number[] }
+  | { tag: "err"; error: Error };
 
 // ---------------------------------------------------------------------------
 // Pure helpers
@@ -53,7 +55,12 @@ function stripInlineComment(line: string): string {
       } else {
         inString = false;
       }
-    } else if (!inString && ch === "-" && i + 1 < line.length && line[i + 1] === "-") {
+    } else if (
+      !inString &&
+      ch === "-" &&
+      i + 1 < line.length &&
+      line[i + 1] === "-"
+    ) {
       return line.slice(0, i).trimEnd();
     }
   }
@@ -154,24 +161,30 @@ async function applyPgMigrations(
     if (m.version <= currentVersion) continue;
 
     try {
-      await pg.begin(async (tx: { unsafe: (sql: string, params?: unknown[]) => Promise<unknown> }) => {
-        const statements = splitPgStatements(m.sql);
-        for (const stmt of statements) {
-          await tx.unsafe(stmt);
-        }
-        if (m.version > 1) {
-          await tx.unsafe(
-            "INSERT INTO schema_version (version, checksum, filename) VALUES ($1, $2, $3)",
-            [m.version, sha256(m.sql), m.filename],
-          );
-        }
-      });
+      await pg.begin(
+        async (tx: {
+          unsafe: (sql: string, params?: unknown[]) => Promise<unknown>;
+        }) => {
+          const statements = splitPgStatements(m.sql);
+          for (const stmt of statements) {
+            await tx.unsafe(stmt);
+          }
+          if (m.version > 1) {
+            await tx.unsafe(
+              "INSERT INTO schema_version (version, checksum, filename) VALUES ($1, $2, $3)",
+              [m.version, sha256(m.sql), m.filename],
+            );
+          }
+        },
+      );
       applied.push(m.version);
       logEvent({ event: "migrate.apply", version: m.version, backend: "pg" });
     } catch (err) {
       return {
         tag: "err",
-        error: new Error(`Migration ${m.version} failed: ${err}`, { cause: err }),
+        error: new Error(`Migration ${m.version} failed: ${err}`, {
+          cause: err,
+        }),
       };
     }
   }
@@ -184,23 +197,12 @@ async function applyPgMigrations(
 // ---------------------------------------------------------------------------
 
 function getSqliteVersion(db: Database): number {
-  const rows = db.prepare("PRAGMA user_version").all() as { user_version: number }[];
+  const rows = db.prepare("PRAGMA user_version").all() as {
+    user_version: number;
+  }[];
   return rows[0]?.user_version ?? 0;
 }
 
-function applySqliteMigrations(db: Database, migrationsDir: string): MigrationResult {
-  const currentVersion = getSqliteVersion(db);
-  // We need to load files synchronously-ish, so we use a wrapper
-  let migrations: MigrationFile[] = [];
-  const loadPromise = loadMigrationFiles(migrationsDir, "sqlite").then((m) => {
-    migrations = m;
-  });
-
-  // In Bun, top-level await within sync context won't work, so we return a promise-based result
-  // This is handled by the public async API below
-  void loadPromise;
-  return { tag: "ok", versions: [] }; // placeholder — real impl is async
-}
 
 async function applySqliteMigrationsAsync(
   db: Database,
@@ -225,11 +227,17 @@ async function applySqliteMigrationsAsync(
     try {
       runMigration();
       applied.push(m.version);
-      logEvent({ event: "migrate.apply", version: m.version, backend: "sqlite" });
+      logEvent({
+        event: "migrate.apply",
+        version: m.version,
+        backend: "sqlite",
+      });
     } catch (err) {
       return {
         tag: "err",
-        error: new Error(`Migration ${m.version} failed: ${err}`, { cause: err }),
+        error: new Error(`Migration ${m.version} failed: ${err}`, {
+          cause: err,
+        }),
       };
     }
   }
