@@ -1,0 +1,274 @@
+import { createHash } from "crypto";
+import { readdir, readFile } from "fs/promises";
+import path from "path";
+import type { Database } from "bun:sqlite";
+import type { SQL } from "bun";
+import { logEvent } from "../logging/logging";
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+interface MigrationFile {
+  version: number;
+  filename: string;
+  sql: string;
+}
+
+export type MigrationResult = { tag: "ok"; versions: number[] } | { tag: "err"; error: Error };
+
+// ---------------------------------------------------------------------------
+// Pure helpers
+// ---------------------------------------------------------------------------
+
+function sha256(content: string): string {
+  return createHash("sha256").update(content).digest("hex");
+}
+
+function parseSqlStatements(sql: string): string[] {
+  return sql.split(";").map((s) => s.trim());
+}
+
+function stripCommentLines(statements: string[]): string[] {
+  return statements
+    .map((s) =>
+      s
+        .split("\n")
+        .filter((line) => !line.trimStart().startsWith("--"))
+        .join("\n")
+        .trim(),
+    )
+    .filter((s) => s.length > 0);
+}
+
+function stripInlineComment(line: string): string {
+  let inString = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === "'" && !inString) {
+      inString = true;
+    } else if (ch === "'" && inString) {
+      if (i + 1 < line.length && line[i + 1] === "'") {
+        i++;
+      } else {
+        inString = false;
+      }
+    } else if (!inString && ch === "-" && i + 1 < line.length && line[i + 1] === "-") {
+      return line.slice(0, i).trimEnd();
+    }
+  }
+  return line;
+}
+
+function splitPgStatements(sql: string): string[] {
+  const results: string[] = [];
+  let current = "";
+  let dollarTag: string | null = null;
+
+  const lines = sql.split("\n");
+  for (const line of lines) {
+    const trimmed = line.trimStart();
+    if (!dollarTag && trimmed.startsWith("--")) continue;
+
+    const effectiveLine = !dollarTag ? stripInlineComment(line) : line;
+    current += (current ? "\n" : "") + effectiveLine;
+
+    const dollarRe = /\$([A-Za-z_]*)\$/g;
+    let m: RegExpExecArray | null;
+    while ((m = dollarRe.exec(line)) !== null) {
+      const tag = m[0];
+      if (dollarTag === null) {
+        dollarTag = tag;
+      } else if (dollarTag === tag) {
+        dollarTag = null;
+      }
+    }
+    const inDollarQuote = dollarTag !== null;
+    if (!inDollarQuote && effectiveLine.trimEnd().endsWith(";")) {
+      const stmt = current.replace(/;$/, "").trim();
+      if (stmt.length > 0) results.push(stmt);
+      current = "";
+    }
+  }
+
+  const remaining = current.trim();
+  if (remaining.length > 0) results.push(remaining);
+
+  return results;
+}
+
+// ---------------------------------------------------------------------------
+// File loading
+// ---------------------------------------------------------------------------
+
+async function loadMigrationFiles(
+  migrationsDir: string,
+  backend: "pg" | "sqlite",
+): Promise<MigrationFile[]> {
+  const suffix = `.${backend}.sql`;
+  let entries: string[];
+  try {
+    entries = await readdir(migrationsDir);
+  } catch {
+    return [];
+  }
+
+  const migrations: MigrationFile[] = [];
+  for (const filename of entries) {
+    if (!filename.endsWith(suffix)) continue;
+    const versionStr = filename.split("_")[0];
+    const version = parseInt(versionStr, 10);
+    if (isNaN(version)) continue;
+
+    const sql = await readFile(path.join(migrationsDir, filename), "utf-8");
+    migrations.push({ version, filename, sql });
+  }
+
+  return migrations.sort((a, b) => a.version - b.version);
+}
+
+// ---------------------------------------------------------------------------
+// PostgreSQL migrations
+// ---------------------------------------------------------------------------
+
+async function getPgVersion(pg: InstanceType<typeof SQL>): Promise<number> {
+  try {
+    const rows = await pg.unsafe(
+      "SELECT version FROM schema_version ORDER BY version DESC LIMIT 1",
+    );
+    return rows.length > 0 ? (rows[0].version as number) : 0;
+  } catch {
+    return 0;
+  }
+}
+
+async function applyPgMigrations(
+  pg: InstanceType<typeof SQL>,
+  migrationsDir: string,
+): Promise<MigrationResult> {
+  const currentVersion = await getPgVersion(pg);
+  const migrations = await loadMigrationFiles(migrationsDir, "pg");
+  const applied: number[] = [];
+
+  for (const m of migrations) {
+    if (m.version <= currentVersion) continue;
+
+    try {
+      await pg.begin(async (tx: { unsafe: (sql: string, params?: unknown[]) => Promise<unknown> }) => {
+        const statements = splitPgStatements(m.sql);
+        for (const stmt of statements) {
+          await tx.unsafe(stmt);
+        }
+        if (m.version > 1) {
+          await tx.unsafe(
+            "INSERT INTO schema_version (version, checksum, filename) VALUES ($1, $2, $3)",
+            [m.version, sha256(m.sql), m.filename],
+          );
+        }
+      });
+      applied.push(m.version);
+      logEvent({ event: "migrate.apply", version: m.version, backend: "pg" });
+    } catch (err) {
+      return {
+        tag: "err",
+        error: new Error(`Migration ${m.version} failed: ${err}`, { cause: err }),
+      };
+    }
+  }
+
+  return { tag: "ok", versions: applied };
+}
+
+// ---------------------------------------------------------------------------
+// SQLite migrations
+// ---------------------------------------------------------------------------
+
+function getSqliteVersion(db: Database): number {
+  const rows = db.prepare("PRAGMA user_version").all() as { user_version: number }[];
+  return rows[0]?.user_version ?? 0;
+}
+
+function applySqliteMigrations(db: Database, migrationsDir: string): MigrationResult {
+  const currentVersion = getSqliteVersion(db);
+  // We need to load files synchronously-ish, so we use a wrapper
+  let migrations: MigrationFile[] = [];
+  const loadPromise = loadMigrationFiles(migrationsDir, "sqlite").then((m) => {
+    migrations = m;
+  });
+
+  // In Bun, top-level await within sync context won't work, so we return a promise-based result
+  // This is handled by the public async API below
+  void loadPromise;
+  return { tag: "ok", versions: [] }; // placeholder — real impl is async
+}
+
+async function applySqliteMigrationsAsync(
+  db: Database,
+  migrationsDir: string,
+): Promise<MigrationResult> {
+  const currentVersion = getSqliteVersion(db);
+  const migrations = await loadMigrationFiles(migrationsDir, "sqlite");
+  const applied: number[] = [];
+
+  for (const m of migrations) {
+    if (m.version <= currentVersion) continue;
+
+    const statements = stripCommentLines(parseSqlStatements(m.sql));
+
+    const runMigration = db.transaction(() => {
+      for (const stmt of statements) {
+        db.exec(stmt);
+      }
+      db.exec(`PRAGMA user_version = ${m.version}`);
+    });
+
+    try {
+      runMigration();
+      applied.push(m.version);
+      logEvent({ event: "migrate.apply", version: m.version, backend: "sqlite" });
+    } catch (err) {
+      return {
+        tag: "err",
+        error: new Error(`Migration ${m.version} failed: ${err}`, { cause: err }),
+      };
+    }
+  }
+
+  return { tag: "ok", versions: applied };
+}
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+export async function applyMigrations(
+  backend: "pg" | "sqlite",
+  migrationsDir: string,
+  db: Database | InstanceType<typeof SQL>,
+): Promise<MigrationResult> {
+  if (backend === "pg") {
+    return applyPgMigrations(db as InstanceType<typeof SQL>, migrationsDir);
+  }
+  return applySqliteMigrationsAsync(db as Database, migrationsDir);
+}
+
+export async function getCurrentSchemaVersion(
+  backend: "pg" | "sqlite",
+  db: Database | InstanceType<typeof SQL>,
+): Promise<number> {
+  if (backend === "pg") {
+    return getPgVersion(db as InstanceType<typeof SQL>);
+  }
+  return getSqliteVersion(db as Database);
+}
+
+export async function getLatestMigrationVersion(
+  migrationsDir: string,
+  backend: "pg" | "sqlite",
+): Promise<number> {
+  const migrations = await loadMigrationFiles(migrationsDir, backend);
+  return migrations.length > 0 ? migrations[migrations.length - 1].version : 0;
+}
+
+// Re-export for domain projects that need vec0 table creation
+export { sha256 as migrationChecksum };
