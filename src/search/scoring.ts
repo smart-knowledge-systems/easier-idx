@@ -28,7 +28,10 @@ export interface HybridScoreInput {
  *   normalizedBM25 = bm25Raw / bm25Max
  *   finalScore = (1 - hybridWeight) * semanticScore + hybridWeight * normalizedBM25
  */
-export function computeHybridScore(cosine: number, input: HybridScoreInput): number {
+export function computeHybridScore(
+  cosine: number,
+  input: HybridScoreInput,
+): number {
   let boostSum = 0;
   if (input.boosts) {
     for (const boost of Object.values(input.boosts)) {

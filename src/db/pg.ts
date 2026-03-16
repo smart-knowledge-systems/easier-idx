@@ -10,7 +10,10 @@ export interface PgConfig {
 }
 
 /** Open (or return cached) PostgreSQL connection pool. */
-export function getPg(config: PgConfig, maxConnections = 20): InstanceType<typeof SQL> {
+export function getPg(
+  config: PgConfig,
+  maxConnections = 20,
+): InstanceType<typeof SQL> {
   if (_pg) return _pg;
   _pg = new SQL({
     hostname: config.host,

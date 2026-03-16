@@ -11,7 +11,9 @@ describe("deepMerge", () => {
   test("deep merges nested objects", () => {
     const base = { scoring: { alpha: 0.1, beta: 0.2 } };
     const override = { scoring: { beta: 0.5 } };
-    expect(deepMerge(base, override)).toEqual({ scoring: { alpha: 0.1, beta: 0.5 } });
+    expect(deepMerge(base, override)).toEqual({
+      scoring: { alpha: 0.1, beta: 0.5 },
+    });
   });
 
   test("does not merge arrays (replaces them)", () => {

@@ -41,7 +41,10 @@ export function hasFlag(parsed: ParsedArgs, name: string): boolean {
   return name in parsed.flags;
 }
 
-export function warnUnknownFlags(parsed: ParsedArgs, knownFlags: string[]): void {
+export function warnUnknownFlags(
+  parsed: ParsedArgs,
+  knownFlags: string[],
+): void {
   const known = new Set(knownFlags);
   for (const key of Object.keys(parsed.flags)) {
     if (!known.has(key)) {

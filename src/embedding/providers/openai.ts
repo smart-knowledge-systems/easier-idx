@@ -76,8 +76,9 @@ export class OpenAIEmbeddingProvider implements EmbeddingProvider {
   }
 
   async embed(texts: string[]): Promise<number[][]> {
-    const batches = Array.from({ length: Math.ceil(texts.length / BATCH_SIZE) }, (_, i) =>
-      texts.slice(i * BATCH_SIZE, (i + 1) * BATCH_SIZE),
+    const batches = Array.from(
+      { length: Math.ceil(texts.length / BATCH_SIZE) },
+      (_, i) => texts.slice(i * BATCH_SIZE, (i + 1) * BATCH_SIZE),
     );
     const results: number[][] = [];
     for (const batch of batches) {

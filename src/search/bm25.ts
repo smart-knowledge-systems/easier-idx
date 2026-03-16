@@ -3,11 +3,48 @@
 // ---------------------------------------------------------------------------
 
 const STOPWORDS = new Set([
-  "the", "be", "to", "of", "and", "in", "that", "have", "it", "for",
-  "not", "on", "with", "he", "as", "you", "do", "at", "this", "but",
-  "his", "by", "from", "they", "we", "her", "she", "or", "an", "will",
-  "my", "all", "if", "is", "are", "was", "were", "been", "has", "had",
-  "its", "can",
+  "the",
+  "be",
+  "to",
+  "of",
+  "and",
+  "in",
+  "that",
+  "have",
+  "it",
+  "for",
+  "not",
+  "on",
+  "with",
+  "he",
+  "as",
+  "you",
+  "do",
+  "at",
+  "this",
+  "but",
+  "his",
+  "by",
+  "from",
+  "they",
+  "we",
+  "her",
+  "she",
+  "or",
+  "an",
+  "will",
+  "my",
+  "all",
+  "if",
+  "is",
+  "are",
+  "was",
+  "were",
+  "been",
+  "has",
+  "had",
+  "its",
+  "can",
 ]);
 
 export function tokenize(text: string): string[] {
@@ -26,7 +63,9 @@ export interface BM25Index {
   N: number;
 }
 
-export function buildIndex(docs: Array<{ id: string; text: string }>): BM25Index {
+export function buildIndex(
+  docs: Array<{ id: string; text: string }>,
+): BM25Index {
   const termDocFreq = new Map<string, number>();
   const docTermFreqs = new Map<string, Map<string, number>>();
   const docLengths = new Map<string, number>();
@@ -58,7 +97,12 @@ export function buildIndex(docs: Array<{ id: string; text: string }>): BM25Index
   };
 }
 
-export function score(index: BM25Index, query: string, k1 = 1.2, b = 0.75): Map<string, number> {
+export function score(
+  index: BM25Index,
+  query: string,
+  k1 = 1.2,
+  b = 0.75,
+): Map<string, number> {
   const queryTokens = tokenize(query);
   const scores = new Map<string, number>();
 
@@ -72,7 +116,8 @@ export function score(index: BM25Index, query: string, k1 = 1.2, b = 0.75): Map<
 
       const df = index.termDocFreq.get(qt) ?? 0;
       const idf = Math.log((index.N - df + 0.5) / (df + 0.5) + 1);
-      const tfNorm = (tf * (k1 + 1)) / (tf + k1 * (1 - b + b * (docLen / index.avgDL)));
+      const tfNorm =
+        (tf * (k1 + 1)) / (tf + k1 * (1 - b + b * (docLen / index.avgDL)));
       docScore += idf * tfNorm;
     }
 

@@ -9,7 +9,9 @@ export function serializeEmbedding(embedding: number[]): Buffer {
 
 /** Deserialize a binary buffer (little-endian floats) back to number[]. */
 export function deserializeEmbedding(buf: Buffer): number[] {
-  return Array.from(new Float32Array(buf.buffer, buf.byteOffset, buf.byteLength / 4));
+  return Array.from(
+    new Float32Array(buf.buffer, buf.byteOffset, buf.byteLength / 4),
+  );
 }
 
 /** Compute cosine similarity between two vectors. Returns value in [-1, 1]. */

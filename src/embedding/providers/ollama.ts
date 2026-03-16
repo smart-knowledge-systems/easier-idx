@@ -10,7 +10,11 @@ export class OllamaEmbeddingProvider implements EmbeddingProvider {
   readonly dimensions: number;
   private baseUrl: string;
 
-  constructor(model = "nomic-embed-text", dimensions = 768, baseUrl = "http://localhost:11434") {
+  constructor(
+    model = "nomic-embed-text",
+    dimensions = 768,
+    baseUrl = "http://localhost:11434",
+  ) {
     this.name = model;
     this.dimensions = dimensions;
     this.baseUrl = baseUrl.replace(/\/$/, "");
@@ -25,12 +29,17 @@ export class OllamaEmbeddingProvider implements EmbeddingProvider {
       });
 
       if (!response.ok) {
-        throw new Error(`Ollama API error: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Ollama API error: ${response.status} ${response.statusText}`,
+        );
       }
 
       const data = (await response.json()) as { embeddings: number[][] };
 
-      const approxTokens = texts.reduce((sum, t) => sum + Math.ceil(t.length / 4), 0);
+      const approxTokens = texts.reduce(
+        (sum, t) => sum + Math.ceil(t.length / 4),
+        0,
+      );
       await recordCost("embed", this.name, approxTokens, 0);
 
       logEvent({
@@ -65,8 +74,9 @@ export class OllamaEmbeddingProvider implements EmbeddingProvider {
   }
 
   async embed(texts: string[]): Promise<number[][]> {
-    const batches = Array.from({ length: Math.ceil(texts.length / BATCH_SIZE) }, (_, i) =>
-      texts.slice(i * BATCH_SIZE, (i + 1) * BATCH_SIZE),
+    const batches = Array.from(
+      { length: Math.ceil(texts.length / BATCH_SIZE) },
+      (_, i) => texts.slice(i * BATCH_SIZE, (i + 1) * BATCH_SIZE),
     );
     const results: number[][] = [];
     for (const batch of batches) {
@@ -84,11 +94,16 @@ export class OllamaEmbeddingProvider implements EmbeddingProvider {
     try {
       const response = await fetch(`${this.baseUrl}/api/tags`);
       if (!response.ok) {
-        return { available: false, error: `Ollama server returned ${response.status}` };
+        return {
+          available: false,
+          error: `Ollama server returned ${response.status}`,
+        };
       }
       const data = (await response.json()) as { models: { name: string }[] };
       const modelNames = data.models.map((m) => m.name);
-      const found = modelNames.some((n) => n === this.name || n.startsWith(`${this.name}:`));
+      const found = modelNames.some(
+        (n) => n === this.name || n.startsWith(`${this.name}:`),
+      );
       if (!found) {
         return {
           available: false,
@@ -97,7 +112,10 @@ export class OllamaEmbeddingProvider implements EmbeddingProvider {
       }
       return { available: true };
     } catch {
-      return { available: false, error: `Cannot connect to Ollama at ${this.baseUrl}` };
+      return {
+        available: false,
+        error: `Cannot connect to Ollama at ${this.baseUrl}`,
+      };
     }
   }
 }

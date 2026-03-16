@@ -6,7 +6,12 @@ function deepMerge(base: any, override: any): any {
   return Object.keys(override).reduce(
     (acc, key) => {
       const val = override[key];
-      if (val !== undefined && val !== null && typeof val === "object" && !Array.isArray(val)) {
+      if (
+        val !== undefined &&
+        val !== null &&
+        typeof val === "object" &&
+        !Array.isArray(val)
+      ) {
         return { ...acc, [key]: deepMerge(acc[key] ?? {}, val) };
       }
       return val !== undefined ? { ...acc, [key]: val } : acc;
@@ -52,7 +57,10 @@ export function getGlobalConfigPath(appName: string): string {
   return path.join(os.homedir(), ".config", appName, "config.json");
 }
 
-export async function writeGlobalConfig<T>(appName: string, config: Partial<T>): Promise<string> {
+export async function writeGlobalConfig<T>(
+  appName: string,
+  config: Partial<T>,
+): Promise<string> {
   const configPath = getGlobalConfigPath(appName);
   const dir = path.dirname(configPath);
   const { mkdirSync } = await import("fs");
