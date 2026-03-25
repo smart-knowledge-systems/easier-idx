@@ -20,12 +20,48 @@ bun add @easier/core
 
 Requires [Bun](https://bun.sh) runtime.
 
+Node.js compatibility fallback is available through optional adapters. This
+package declares `pg` and `better-sqlite3` as optional dependencies, lazy-loads
+them on Node fallback paths, and uses [`bunfig.toml`](/Users/russfugal/repo/easier/bunfig.toml)
+to skip optional installs during local `bun install`.
+
+## Public API contract
+
+The supported package surface is documented in [PUBLIC_API.md](PUBLIC_API.md).
+`bun test` checks the runtime exports and documented subpath entrypoints, and
+`bun run check` typechecks [`test/public-api.types.ts`](/Users/russfugal/repo/easier/test/public-api.types.ts)
+so breaking API changes fail CI before release.
+
+## Runtime support
+
+`@easier/core` is Bun-native first and ships Node fallbacks for the following:
+
+- `@easier/core/config`
+- `@easier/core/db/pg` via optional `pg`
+- `@easier/core/db/sqlite` via optional `better-sqlite3`
+
+The SQLite fallback is functional for core database access, but Bun remains the
+primary runtime for the full sqlite-vec path.
+
+CI validates:
+
+- `bun run check`
+- `bun test`
+- packed-package import smoke tests under Bun
+- packed-package import smoke tests under Node 20 and Node 22
+
+Cluster APIs are also part of the published package surface:
+
+- `@easier/core/cluster`
+- `@easier/core/cluster/classify`
+- `@easier/core/cluster/silhouette`
+- `@easier/core/cluster/describe`
+
 ## Quick start
 
 ```typescript
 import {
-  embed, embedSingle, buildIndex, bm25Score,
-  computeHybridScore, serializeEmbedding,
+  buildIndex, bm25Score, computeHybridScore,
   loadConfig, type EasierConfig, type Document,
 } from "@easier/core";
 
@@ -45,8 +81,8 @@ interface MyConfig extends EasierConfig {
 // 3. Load config (merges ~/.config/myapp/config.json + .myapp.json)
 const config = await loadConfig<MyConfig>("myapp", defaults);
 
-// 4. Embed and search
-const queryVec = await embedSingle("transformer protein folding", config);
+// 4. Embed with your preferred provider (see @easier/embedding) and search
+const queryVec = await yourEmbedder.embedSingle("transformer protein folding");
 const candidates = await myStore.vectorSearch(queryVec, 100);
 
 // 5. Score with BM25 hybrid + domain boosts
@@ -71,7 +107,7 @@ const results = candidates.map(c => ({
 
 ```typescript
 import {
-  getSqlite, createSqliteStoreOps, checkCostCap, getCostSummary,
+  getSqlite, createSqliteStoreOps,
   type StoreOps,
 } from "@easier/core";
 
@@ -82,13 +118,6 @@ const ops: StoreOps = createSqliteStoreOps(db);
 // Write SQL with pg-style $1 placeholders — auto-converted for SQLite
 await ops.run("INSERT INTO items (name) VALUES ($1)", ["example"]);
 const rows = await ops.query<{ id: number; name: string }>("SELECT * FROM items");
-
-// Budget guardrails
-const cap = await checkCostCap(ops, 5.0, "sqlite");
-if (cap.exceeded) console.warn(`Cost cap exceeded: $${cap.current}`);
-
-// Cost reporting
-const summary = await getCostSummary(ops);
 ```
 
 ## What you implement vs what the framework provides
@@ -97,14 +126,11 @@ const summary = await getCostSummary(ops);
 
 | Module | What it does |
 |--------|-------------|
-| **Embedding** | `EmbeddingProvider` interface + OpenAI, Ollama, and Remote HTTP providers. Provider caching, text sanitization, batch processing with retry. |
 | **Database** | SQLite (with sqlite-vec) and PostgreSQL connection management. `StoreOps` factory for backend-agnostic query/run. Embedding serialization/deserialization. Parameterized migration runner. |
 | **Search** | BM25 tokenizer + scorer + `buildBM25Context` helper. Generic hybrid scoring with named boost terms. Composable reranker interface. Query expansion with configurable abbreviation dictionaries. |
 | **Eval** | Precision@k, HitRate@k, MRR, nDCG, Recall metric functions. Quality gate assertions for regression testing. |
 | **Config** | `loadConfig<T>(appName, defaults)` — deep-merges defaults, global (`~/.config/{appName}/config.json`), and local (`.{appName}.json`). |
-| **Cost** | Per-model pricing, AsyncLocalStorage-scoped cost tracking, projected cost estimation, `checkCostCap` budget guardrails, `getCostSummary` reporting. |
 | **Logging** | Structured JSON logging with configurable domains, extensible correlation context, `hashPath` for PII-safe identifiers, and timing wrappers. |
-| **CLI** | Argument parser with configurable value flags. |
 
 ### You implement
 
@@ -113,7 +139,6 @@ const summary = await getCostSummary(ops);
 | `Collector<TMeta>` | Fetch papers from crossref.org, scan files from disk, pull packages from a registry |
 | `DocumentStore<TMeta>` | Your schema, your tables, your queries — the framework provides the connection and migration runner |
 | Search function | Compose vector search + BM25 + framework scoring with your domain's boost signals |
-| CLI commands | Wire your domain logic to the framework's arg parser |
 | Config extension | `interface MyConfig extends EasierConfig { ... }` |
 
 ## Core types

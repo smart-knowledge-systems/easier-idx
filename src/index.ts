@@ -8,7 +8,6 @@ export type {
   SearchResult,
   ScoreExplanation,
   ScoringConfig,
-  EmbeddingConfig,
   EasierConfig,
   Collector,
   DocumentStore,
@@ -18,18 +17,6 @@ export type {
   SqlRunner,
 } from "./types";
 
-// Embedding
-export type { EmbeddingProvider } from "./embedding/provider";
-export { OpenAIEmbeddingProvider } from "./embedding/providers/openai";
-export { OllamaEmbeddingProvider } from "./embedding/providers/ollama";
-export { RemoteEmbeddingProvider } from "./embedding/providers/remote";
-export {
-  getProvider,
-  resetProvider,
-  embed,
-  embedSingle,
-} from "./embedding/embedder";
-
 // Database utilities
 export {
   serializeEmbedding,
@@ -37,9 +24,9 @@ export {
   cosineSimilarity,
 } from "./db/util";
 export { getSqlite, closeSqlite } from "./db/sqlite";
-export type { SqliteConfig } from "./db/sqlite";
+export type { SqliteConfig, SqliteDatabase, SqliteStatement } from "./db/sqlite";
 export { getPg, pgUnsafe, closePg } from "./db/pg";
-export type { PgConfig } from "./db/pg";
+export type { PgClient, PgConfig, PgTx } from "./db/pg";
 export {
   applyMigrations,
   getCurrentSchemaVersion,
@@ -82,19 +69,6 @@ export {
   deepMerge,
 } from "./config/config";
 
-// Cost — STEERING #4 (cost sensitivity drives architecture)
-export {
-  PRICING,
-  registerPricing,
-  withCostContext,
-  computeCostUsd,
-  recordCost,
-  getProjectedCost,
-  checkCostCap,
-  getCostSummary,
-} from "./cost/cost";
-export type { CostSummaryRow } from "./cost/cost";
-
 // Logging
 export {
   initLogging,
@@ -106,6 +80,29 @@ export {
   withTimingAsync,
 } from "./logging/logging";
 
-// CLI
-export { parseArgs, flag, hasFlag, warnUnknownFlags } from "./cli/cli";
-export type { ParsedArgs } from "./cli/cli";
+// Cluster
+export { kmeans, kmeansSearch } from "./cluster/kmeans";
+export {
+  classify,
+  voteAll,
+  voteSubset,
+  voteDeepest,
+  voteMostSpecific,
+} from "./cluster/classify";
+export { silhouetteScore } from "./cluster/silhouette";
+export {
+  sampleRepresentative,
+  extractTopTerms,
+} from "./cluster/describe";
+export type {
+  Cluster,
+  ClusterAssignment,
+  ClusterResult,
+  KMeansOptions,
+  ClusterDef,
+  LabeledItem,
+  VotingStrategy,
+  ClassifyResult,
+  ClassifyOptions,
+  ClusterProvider,
+} from "./cluster/types";

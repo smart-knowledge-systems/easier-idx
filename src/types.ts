@@ -44,24 +44,12 @@ export interface ScoringConfig {
   readonly boosts: Record<string, number>;
 }
 
-/** Embedding provider config. */
-export interface EmbeddingConfig {
-  readonly model: string;
-  readonly dimensions: number;
-  readonly provider: "openai" | "ollama" | "remote";
-  readonly ollamaUrl?: string;
-  readonly remoteUrl?: string;
-  readonly remoteAuth?: string;
-}
-
 /** Base config every EASIER project extends. */
 export interface EasierConfig {
   readonly store: "pg" | "sqlite";
   readonly pg: { host: string; port: number; database: string; user: string };
   readonly sqlite: { path: string };
-  readonly embedding: EmbeddingConfig;
   readonly scoring: ScoringConfig;
-  readonly costCap: { maxCostPerReindex: number | null; warnAt: number | null };
 }
 
 // ---------------------------------------------------------------------------

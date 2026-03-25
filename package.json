@@ -23,10 +23,6 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./embedding": {
-      "types": "./dist/embedding/provider.d.ts",
-      "import": "./dist/embedding/provider.js"
-    },
     "./db": {
       "types": "./dist/db/util.d.ts",
       "import": "./dist/db/util.js"
@@ -71,17 +67,9 @@
       "types": "./dist/config/config.d.ts",
       "import": "./dist/config/config.js"
     },
-    "./cost": {
-      "types": "./dist/cost/cost.d.ts",
-      "import": "./dist/cost/cost.js"
-    },
     "./logging": {
       "types": "./dist/logging/logging.d.ts",
       "import": "./dist/logging/logging.js"
-    },
-    "./cli": {
-      "types": "./dist/cli/cli.d.ts",
-      "import": "./dist/cli/cli.js"
     },
     "./cluster": {
       "types": "./dist/cluster/kmeans.d.ts",
@@ -107,7 +95,6 @@
     "README.md"
   ],
   "dependencies": {
-    "openai": "^4.77.0",
     "sqlite-vec": "^0.1.7-alpha.2"
   },
   "optionalDependencies": {
