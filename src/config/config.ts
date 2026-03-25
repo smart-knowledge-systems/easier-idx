@@ -1,5 +1,6 @@
 import path from "path";
 import os from "os";
+import { mkdir, readFile, writeFile } from "fs/promises";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function deepMerge(base: any, override: any): any {
@@ -22,10 +23,8 @@ function deepMerge(base: any, override: any): any {
 
 async function loadJsonFile<T>(filePath: string): Promise<Partial<T>> {
   try {
-    const file = Bun.file(filePath);
-    if (await file.exists()) {
-      return (await file.json()) as Partial<T>;
-    }
+    const content = await readFile(filePath, "utf-8");
+    return JSON.parse(content) as Partial<T>;
   } catch {
     // ignore missing/invalid config
   }
@@ -53,7 +52,20 @@ export async function loadConfig<T>(
   return deepMerge(deepMerge(defaults, global), local) as T;
 }
 
+function validateAppName(appName: string): void {
+  if (
+    appName.includes("/") ||
+    appName.includes("\\") ||
+    appName.includes("..")
+  ) {
+    throw new Error(
+      `Invalid appName "${appName}": must not contain path separators or ".."`,
+    );
+  }
+}
+
 export function getGlobalConfigPath(appName: string): string {
+  validateAppName(appName);
   return path.join(os.homedir(), ".config", appName, "config.json");
 }
 
@@ -63,9 +75,8 @@ export async function writeGlobalConfig<T>(
 ): Promise<string> {
   const configPath = getGlobalConfigPath(appName);
   const dir = path.dirname(configPath);
-  const { mkdirSync } = await import("fs");
-  mkdirSync(dir, { recursive: true });
-  await Bun.write(configPath, JSON.stringify(config, null, 2) + "\n");
+  await mkdir(dir, { recursive: true });
+  await writeFile(configPath, JSON.stringify(config, null, 2) + "\n", "utf-8");
   return configPath;
 }
 
