@@ -18,7 +18,17 @@ describe("pgToSqlite", () => {
   });
 
   test("handles double-digit placeholders", () => {
-    expect(pgToSqlite("$10, $11, $12")).toBe("?, ?, ?");
+    const placeholders = Array.from({ length: 12 }, (_, i) => `$${i + 1}`).join(", ");
+    const expected = Array.from({ length: 12 }, () => "?").join(", ");
+    expect(pgToSqlite(placeholders)).toBe(expected);
+  });
+
+  test("throws on non-sequential placeholders", () => {
+    expect(() => pgToSqlite("$2, $3")).toThrow("non-sequential");
+  });
+
+  test("throws on out-of-order placeholders", () => {
+    expect(() => pgToSqlite("$2, $1")).toThrow("out-of-order");
   });
 
   test("preserves non-placeholder dollar signs (e.g. $$)", () => {
