@@ -16,6 +16,11 @@ export function deserializeEmbedding(buf: Buffer): number[] {
 
 /** Compute cosine similarity between two vectors. Returns value in [-1, 1]. */
 export function cosineSimilarity(a: number[], b: number[]): number {
+  if (a.length !== b.length) {
+    throw new Error(
+      `cosineSimilarity: vector length mismatch (${a.length} vs ${b.length})`,
+    );
+  }
   let dot = 0;
   let normA = 0;
   let normB = 0;
