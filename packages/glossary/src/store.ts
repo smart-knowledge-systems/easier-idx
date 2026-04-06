@@ -1,10 +1,13 @@
-import type { StoreOps } from "@easier/core";
+import type { StoreOps } from "@easier-idx/core";
+import { assertSafeIdentifier } from "@easier-idx/core";
 import type { GlossaryTerm } from "./types";
 
 export async function findTerms(
   ops: StoreOps,
   opts: { table: string; idColumn: string; idValue: unknown },
 ): Promise<GlossaryTerm[] | null> {
+  assertSafeIdentifier(opts.table, "table");
+  assertSafeIdentifier(opts.idColumn, "idColumn");
   const rows = await ops.query<{ keyword: string; definition: string }>(
     `SELECT keyword, definition FROM ${opts.table} WHERE ${opts.idColumn} = $1`,
     [opts.idValue],
@@ -22,6 +25,8 @@ export async function saveTerms(
     extraColumns?: Record<string, unknown>;
   },
 ): Promise<void> {
+  assertSafeIdentifier(opts.table, "table");
+  assertSafeIdentifier(opts.idColumn, "idColumn");
   for (const term of opts.terms) {
     const extraKeys = opts.extraColumns ? Object.keys(opts.extraColumns) : [];
     const extraPlaceholders = extraKeys.map((_, i) => `$${i + 4}`);

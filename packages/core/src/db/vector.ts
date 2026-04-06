@@ -6,6 +6,7 @@
 
 import type { PgClient, PgTx } from "./pg";
 import type { SqliteDatabase } from "./sqlite";
+import { assertSafeIdentifier } from "./identifiers";
 import { serializeEmbedding } from "./util";
 
 // ---------------------------------------------------------------------------
@@ -33,10 +34,14 @@ export function pgvectorHnswIndex(
     opclass?: string;
   },
 ): string {
+  assertSafeIdentifier(table, "table");
+  assertSafeIdentifier(column, "column");
   const name = opts?.indexName ?? `idx_${table}_${column}_hnsw`;
+  assertSafeIdentifier(name, "indexName");
   const m = opts?.m ?? 16;
   const ef = opts?.efConstruction ?? 64;
   const opclass = opts?.opclass ?? "vector_cosine_ops";
+  assertSafeIdentifier(opclass, "opclass");
   return `CREATE INDEX IF NOT EXISTS ${name} ON ${table} USING hnsw (${column} ${opclass}) WITH (m = ${m}, ef_construction = ${ef})`;
 }
 
@@ -45,7 +50,13 @@ export async function pgSetHnswEfSearch(
   pg: PgClient | PgTx,
   value: number,
 ): Promise<void> {
-  await pg.unsafe(`SET LOCAL hnsw.ef_search = ${Math.round(value)}`);
+  const rounded = Math.round(value);
+  if (rounded < 1 || rounded > 10000) {
+    throw new Error(
+      `hnsw.ef_search must be between 1 and 10000, got ${rounded}`,
+    );
+  }
+  await pg.unsafe(`SET LOCAL hnsw.ef_search = ${rounded}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -71,11 +82,14 @@ export function pgCosineSimilarity(
   paramIndex: number,
   alias = "similarity",
 ): string {
+  assertSafeIdentifier(column, "column");
+  assertSafeIdentifier(alias, "alias");
   return `1 - (${column} <=> $${paramIndex}::vector) AS ${alias}`;
 }
 
 /** Return a cosine distance expression: `column <=> $N::vector`. */
 export function pgCosineDistance(column: string, paramIndex: number): string {
+  assertSafeIdentifier(column, "column");
   return `${column} <=> $${paramIndex}::vector`;
 }
 
@@ -88,6 +102,8 @@ export function pgConditionalSimilarity(
   paramIndex: number,
   alias = "similarity",
 ): string {
+  assertSafeIdentifier(column, "column");
+  assertSafeIdentifier(alias, "alias");
   return `CASE WHEN ${column} IS NOT NULL THEN 1 - (${column} <=> $${paramIndex}::vector) ELSE 0 END AS ${alias}`;
 }
 
@@ -109,6 +125,9 @@ export function vec0CreateTable(
   opts?: { embeddingCol?: string },
 ): string {
   const embCol = opts?.embeddingCol ?? "embedding";
+  assertSafeIdentifier(name, "name");
+  assertSafeIdentifier(pkCol, "pkCol");
+  assertSafeIdentifier(embCol, "embeddingCol");
   return `CREATE VIRTUAL TABLE IF NOT EXISTS ${name} USING vec0(${pkCol} integer PRIMARY KEY, ${embCol} float[${dims}])`;
 }
 
@@ -122,6 +141,7 @@ export function vec0CreateTable(
  * The caller binds: (1) serialized embedding buffer, (2) k limit.
  */
 export function sqliteKnnWhere(embeddingCol = "embedding"): string {
+  assertSafeIdentifier(embeddingCol, "embeddingCol");
   return `${embeddingCol} MATCH ? AND k = ?`;
 }
 
@@ -133,6 +153,8 @@ export function sqlitePointDistance(
   column = "embedding",
   alias = "distance",
 ): string {
+  assertSafeIdentifier(column, "column");
+  assertSafeIdentifier(alias, "alias");
   return `vec_distance_cosine(${column}, ?) AS ${alias}`;
 }
 
@@ -167,7 +189,10 @@ export async function pgRankByVector(
   pg: PgClient | PgTx,
   opts: PgRankByVectorOpts,
 ): Promise<Array<Record<string, unknown> & { similarity: number }>> {
+  assertSafeIdentifier(opts.table, "table");
+  assertSafeIdentifier(opts.column, "column");
   const cols = opts.select ?? ["id"];
+  for (const c of cols) assertSafeIdentifier(c, "select");
   const vecLit = pgVectorLiteral(opts.embedding);
   const selectClause = [
     ...cols,
@@ -223,7 +248,12 @@ export function sqliteRankByVector(
   opts: SqliteRankByVectorOpts,
 ): Array<Record<string, unknown> & { distance: number }> {
   const embCol = opts.embeddingCol ?? "embedding";
+  assertSafeIdentifier(opts.vecTable, "vecTable");
+  assertSafeIdentifier(opts.joinTable, "joinTable");
+  assertSafeIdentifier(opts.joinCol, "joinCol");
+  assertSafeIdentifier(embCol, "embeddingCol");
   const cols = opts.select ?? ["id"];
+  for (const c of cols) assertSafeIdentifier(c, "select");
   const selectCols = cols.map((c) => `t.${c}`).join(", ");
   const embBuf = serializeEmbedding(opts.embedding);
 

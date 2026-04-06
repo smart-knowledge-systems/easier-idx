@@ -1,4 +1,5 @@
-import type { StoreOps } from "@easier/core";
+import type { StoreOps } from "@easier-idx/core";
+import { assertSafeIdentifier } from "@easier-idx/core";
 
 export async function findDescription<T = string>(
   ops: StoreOps,
@@ -11,6 +12,9 @@ export async function findDescription<T = string>(
   },
 ): Promise<T | null> {
   const col = opts.descriptionColumn ?? "description";
+  assertSafeIdentifier(opts.table, "table");
+  assertSafeIdentifier(opts.idColumn, "idColumn");
+  assertSafeIdentifier(col, "descriptionColumn");
   const rows = await ops.query<Record<string, unknown>>(
     `SELECT ${col} FROM ${opts.table} WHERE ${opts.idColumn} = $1 LIMIT 1`,
     [opts.idValue],
@@ -34,11 +38,15 @@ export async function saveDescription<T = string>(
   },
 ): Promise<void> {
   const col = opts.descriptionColumn ?? "description";
+  assertSafeIdentifier(opts.table, "table");
+  assertSafeIdentifier(opts.idColumn, "idColumn");
+  assertSafeIdentifier(col, "descriptionColumn");
   const serialized = opts.serialize
     ? opts.serialize(opts.description)
     : (opts.description as unknown as string);
 
   const extraKeys = opts.extraColumns ? Object.keys(opts.extraColumns) : [];
+  for (const k of extraKeys) assertSafeIdentifier(k, "extraColumn");
   const extraPlaceholders = extraKeys.map((_, i) => `$${i + 3}`);
   const extraValues = extraKeys.map((k) => opts.extraColumns![k]);
 

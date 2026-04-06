@@ -4,7 +4,8 @@
 // ---------------------------------------------------------------------------
 
 import { createHash } from "node:crypto";
-import { logEvent } from "@easier/logging";
+import { logEvent } from "@easier-idx/logging";
+import { assertSafeIdentifier } from "@easier-idx/core";
 import type { StoreOps } from "./cost";
 
 /**
@@ -37,6 +38,9 @@ export async function shouldEmbed(
   ops: StoreOps,
   opts: ShouldEmbedOpts,
 ): Promise<boolean> {
+  assertSafeIdentifier(opts.table, "table");
+  assertSafeIdentifier(opts.idColumn, "idColumn");
+  assertSafeIdentifier(opts.hashColumn, "hashColumn");
   const rows = await ops.query<Record<string, unknown>>(
     `SELECT ${opts.hashColumn} FROM ${opts.table} WHERE ${opts.idColumn} = $1 LIMIT 1`,
     [opts.id],
@@ -64,6 +68,9 @@ export async function markEmbedded(
   ops: StoreOps,
   opts: ShouldEmbedOpts,
 ): Promise<void> {
+  assertSafeIdentifier(opts.table, "table");
+  assertSafeIdentifier(opts.idColumn, "idColumn");
+  assertSafeIdentifier(opts.hashColumn, "hashColumn");
   await ops.run(
     `UPDATE ${opts.table} SET ${opts.hashColumn} = $1 WHERE ${opts.idColumn} = $2`,
     [opts.hash, opts.id],

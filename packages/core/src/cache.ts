@@ -5,6 +5,7 @@
 // ---------------------------------------------------------------------------
 
 import type { StoreOps } from "./types";
+import { assertSafeIdentifier } from "./db/identifiers";
 
 // ---------------------------------------------------------------------------
 // Cache-or-generate ("ensure" pattern)
@@ -74,6 +75,9 @@ export async function casUpdate(
   ops: StoreOps,
   opts: CasUpdateOpts,
 ): Promise<boolean> {
+  assertSafeIdentifier(opts.table, "table");
+  assertSafeIdentifier(opts.idColumn, "idColumn");
+  assertSafeIdentifier(opts.statusColumn, "statusColumn");
   const sql = `UPDATE ${opts.table} SET ${opts.statusColumn} = $1 WHERE ${opts.idColumn} = $2 AND ${opts.statusColumn} = $3 RETURNING ${opts.idColumn}`;
   const rows = await ops.query(sql, [
     opts.toStatus,
@@ -106,6 +110,10 @@ export async function detectOrphans(
   ops: StoreOps,
   opts: DetectOrphansOpts,
 ): Promise<unknown[]> {
+  assertSafeIdentifier(opts.table, "table");
+  assertSafeIdentifier(opts.idColumn, "idColumn");
+  assertSafeIdentifier(opts.statusColumn, "statusColumn");
+  assertSafeIdentifier(opts.updatedAtColumn, "updatedAtColumn");
   const placeholders = opts.stuckStatuses.map((_, i) => `$${i + 1}`).join(", ");
   const timeoutParam = `$${opts.stuckStatuses.length + 1}`;
   const sql = `SELECT ${opts.idColumn} FROM ${opts.table} WHERE ${opts.statusColumn} IN (${placeholders}) AND ${opts.updatedAtColumn} < NOW() - (${timeoutParam} || ' milliseconds')::interval`;
@@ -138,6 +146,7 @@ export async function startPipelineRun(
   runType: string,
   table = "pipeline_runs",
 ): Promise<{ runId: number }> {
+  assertSafeIdentifier(table, "table");
   const rows = await ops.query<{ id: number }>(
     `INSERT INTO ${table} (run_type, status, started_at) VALUES ($1, 'running', NOW()) RETURNING id`,
     [runType],
@@ -154,6 +163,7 @@ export async function completePipelineRun(
   stats: PipelineRunStats,
   table = "pipeline_runs",
 ): Promise<void> {
+  assertSafeIdentifier(table, "table");
   await ops.run(
     `UPDATE ${table} SET
        status = 'completed',
@@ -182,6 +192,7 @@ export async function failPipelineRun(
   errorMessage: string,
   table = "pipeline_runs",
 ): Promise<void> {
+  assertSafeIdentifier(table, "table");
   await ops.run(
     `UPDATE ${table} SET status = 'failed', completed_at = NOW(), error_message = $1 WHERE id = $2`,
     [errorMessage, runId],

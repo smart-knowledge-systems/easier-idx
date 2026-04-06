@@ -6,6 +6,7 @@
 // ---------------------------------------------------------------------------
 
 import type { PgClient, PgTx } from "./pg";
+import { assertSafeIdentifier } from "./identifiers";
 import { pgVectorLiteral } from "./vector";
 
 // ---------------------------------------------------------------------------
@@ -34,6 +35,7 @@ export function pgTsvectorExpression(
   weights: readonly TsvectorWeight[],
   config = "english",
 ): string {
+  for (const w of weights) assertSafeIdentifier(w.column, "column");
   return weights
     .map(
       (w) =>
@@ -50,7 +52,10 @@ export function pgFtsIndex(
   column: string,
   indexName?: string,
 ): string {
+  assertSafeIdentifier(table, "table");
+  assertSafeIdentifier(column, "column");
   const name = indexName ?? `idx_${table}_${column}_fts`;
+  assertSafeIdentifier(name, "indexName");
   return `CREATE INDEX IF NOT EXISTS ${name} ON ${table} USING GIN(${column})`;
 }
 
@@ -66,6 +71,7 @@ export function pgFtsWhere(
   queryParamIdx: number,
   config = "english",
 ): string {
+  assertSafeIdentifier(tsvectorCol, "tsvectorCol");
   return `${tsvectorCol} @@ plainto_tsquery('${config}', $${queryParamIdx})`;
 }
 
@@ -78,6 +84,8 @@ export function pgFtsRank(
   alias = "fts_rank",
   config = "english",
 ): string {
+  assertSafeIdentifier(tsvectorCol, "tsvectorCol");
+  assertSafeIdentifier(alias, "alias");
   return `ts_rank(${tsvectorCol}, plainto_tsquery('${config}', $${queryParamIdx})) AS ${alias}`;
 }
 
@@ -90,6 +98,7 @@ export function pgWebsearchWhere(
   queryParamIdx: number,
   config = "english",
 ): string {
+  assertSafeIdentifier(tsvectorCol, "tsvectorCol");
   return `${tsvectorCol} @@ websearch_to_tsquery('${config}', $${queryParamIdx})`;
 }
 
@@ -145,7 +154,11 @@ export async function pgHybridRank(
     }
   >
 > {
+  assertSafeIdentifier(opts.table, "table");
+  assertSafeIdentifier(opts.embeddingCol, "embeddingCol");
+  assertSafeIdentifier(opts.tsvectorCol, "tsvectorCol");
   const cols = opts.select ?? ["id"];
+  for (const c of cols) assertSafeIdentifier(c, "select");
   const ftsWeight = opts.ftsWeight ?? 0.3;
   const ftsConfig = opts.ftsConfig ?? "english";
   const vecLit = pgVectorLiteral(opts.embedding);

@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// @easier/core — barrel export
+// @easier-idx/core — barrel export
 // ---------------------------------------------------------------------------
 
 // Types
@@ -18,6 +18,7 @@ export type {
 } from "./types";
 
 // Database utilities
+export { assertSafeIdentifier } from "./db/identifiers";
 export {
   serializeEmbedding,
   deserializeEmbedding,
@@ -130,7 +131,7 @@ export {
   deepMerge,
 } from "./config/config";
 
-// Logging (re-exported from @easier/logging)
+// Logging (re-exported from @easier-idx/logging)
 export {
   initLogging,
   logEvent,
@@ -139,7 +140,7 @@ export {
   hashPath,
   withTimingSync,
   withTimingAsync,
-} from "@easier/logging";
+} from "@easier-idx/logging";
 
 // Cluster
 export { kmeans, kmeansSearch } from "./cluster/kmeans";
