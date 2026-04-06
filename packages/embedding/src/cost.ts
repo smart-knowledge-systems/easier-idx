@@ -46,8 +46,8 @@ const costStorage = new AsyncLocalStorage<CostContext>();
  */
 export function withCostContext<T>(
   ops: StoreOps,
-  fn: () => T | Promise<T>,
-): T | Promise<T> {
+  fn: () => T,
+): T {
   return costStorage.run({ ops }, fn);
 }
 
