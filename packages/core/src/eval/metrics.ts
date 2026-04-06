@@ -9,8 +9,9 @@ export function precisionAtK(
   k: number,
 ): number {
   if (expectedIds.length === 0) return returnedIds.length === 0 ? 1 : 0;
+  const expected = new Set(expectedIds);
   const topK = returnedIds.slice(0, k);
-  const hits = topK.filter((id) => expectedIds.includes(id)).length;
+  const hits = topK.filter((id) => expected.has(id)).length;
   return hits / k;
 }
 
@@ -21,23 +22,26 @@ export function hitRateAtK(
   k: number,
 ): number {
   if (expectedIds.length === 0) return returnedIds.length === 0 ? 1 : 0;
+  const expected = new Set(expectedIds);
   const topK = returnedIds.slice(0, k);
-  const hits = topK.filter((id) => expectedIds.includes(id)).length;
+  const hits = topK.filter((id) => expected.has(id)).length;
   return hits / Math.min(k, expectedIds.length);
 }
 
 /** Recall: fraction of expected items found anywhere in the returned list. */
 export function recall(returnedIds: string[], expectedIds: string[]): number {
   if (expectedIds.length === 0) return returnedIds.length === 0 ? 1 : 0;
-  const hits = expectedIds.filter((id) => returnedIds.includes(id)).length;
+  const returned = new Set(returnedIds);
+  const hits = expectedIds.filter((id) => returned.has(id)).length;
   return hits / expectedIds.length;
 }
 
 /** Mean Reciprocal Rank: 1 / rank of the first relevant result. */
 export function mrr(returnedIds: string[], expectedIds: string[]): number {
   if (expectedIds.length === 0) return returnedIds.length === 0 ? 1 : 0;
+  const expected = new Set(expectedIds);
   for (let i = 0; i < returnedIds.length; i++) {
-    if (expectedIds.includes(returnedIds[i])) {
+    if (expected.has(returnedIds[i])) {
       return 1 / (i + 1);
     }
   }
@@ -51,11 +55,12 @@ export function ndcg(
   k = 10,
 ): number {
   if (expectedIds.length === 0) return returnedIds.length === 0 ? 1 : 0;
+  const expected = new Set(expectedIds);
 
   let dcg = 0;
   const topK = returnedIds.slice(0, k);
   for (let i = 0; i < topK.length; i++) {
-    const rel = expectedIds.includes(topK[i]) ? 1 : 0;
+    const rel = expected.has(topK[i]) ? 1 : 0;
     dcg += rel / Math.log2(i + 2);
   }
 
