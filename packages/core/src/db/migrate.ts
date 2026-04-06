@@ -1,7 +1,7 @@
 import { createHash } from "crypto";
 import { readdir, readFile } from "fs/promises";
 import path from "path";
-import { logEvent } from "@easier/logging";
+import { logEvent } from "@easier-idx/logging";
 import type { PgClient, PgTx } from "./pg";
 import type { SqliteDatabase } from "./sqlite";
 
@@ -28,7 +28,36 @@ function sha256(content: string): string {
 }
 
 function parseSqlStatements(sql: string): string[] {
-  return sql.split(";").map((s) => s.trim());
+  const results: string[] = [];
+  let current = "";
+  let inString = false;
+
+  for (let i = 0; i < sql.length; i++) {
+    const ch = sql[i];
+    if (ch === "'" && !inString) {
+      inString = true;
+      current += ch;
+    } else if (ch === "'" && inString) {
+      current += ch;
+      if (i + 1 < sql.length && sql[i + 1] === "'") {
+        current += "'";
+        i++; // skip escaped quote
+      } else {
+        inString = false;
+      }
+    } else if (ch === ";" && !inString) {
+      const trimmed = current.trim();
+      if (trimmed.length > 0) results.push(trimmed);
+      current = "";
+    } else {
+      current += ch;
+    }
+  }
+
+  const trimmed = current.trim();
+  if (trimmed.length > 0) results.push(trimmed);
+
+  return results;
 }
 
 function stripCommentLines(statements: string[]): string[] {
