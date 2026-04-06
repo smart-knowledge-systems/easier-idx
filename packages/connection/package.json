@@ -1,0 +1,29 @@
+{
+  "name": "@easier/connection",
+  "version": "0.1.0",
+  "license": "MIT",
+  "author": "Russ T Fugal <russ-fugal@smart-knowledge-systems.com>",
+  "description": "Similarity matrix computation, threshold selection, and pair filtering for EASIER systems",
+  "keywords": ["similarity", "cosine", "threshold", "connection", "matrix"],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
+    "./threshold": { "types": "./dist/threshold.d.ts", "import": "./dist/threshold.js" }
+  },
+  "files": ["LICENSE", "dist/", "README.md"],
+  "peerDependencies": { "@easier/core": ">=0.1.0" },
+  "peerDependenciesMeta": { "@easier/core": { "optional": true } },
+  "devDependencies": {
+    "@easier/core": "workspace:*",
+    "@types/bun": "^1.3.10",
+    "typescript": "^5.7.0"
+  },
+  "scripts": {
+    "build": "bun run ./scripts/build.ts",
+    "typecheck": "bunx tsc --noEmit",
+    "check": "bun run typecheck && bun run build",
+    "test": "bun run build && bun test"
+  }
+}
