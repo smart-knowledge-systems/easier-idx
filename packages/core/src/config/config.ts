@@ -40,6 +40,7 @@ export async function loadConfig<T>(
   defaults: T,
   projectRoot?: string,
 ): Promise<T> {
+  validateAppName(appName);
   const globalPath = path.join(os.homedir(), ".config", appName, "config.json");
   const localFile = `.${appName}.json`;
   const localPath = projectRoot ? path.join(projectRoot, localFile) : localFile;
