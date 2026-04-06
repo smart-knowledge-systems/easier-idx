@@ -100,6 +100,8 @@ export interface DetectOrphansOpts {
   stuckStatuses: string[];
   /** Timeout in milliseconds. Rows older than this are considered orphans. */
   timeoutMs: number;
+  /** Database backend — required for portable time expressions. */
+  backend: "pg" | "sqlite";
 }
 
 /**
@@ -116,7 +118,11 @@ export async function detectOrphans(
   assertSafeIdentifier(opts.updatedAtColumn, "updatedAtColumn");
   const placeholders = opts.stuckStatuses.map((_, i) => `$${i + 1}`).join(", ");
   const timeoutParam = `$${opts.stuckStatuses.length + 1}`;
-  const sql = `SELECT ${opts.idColumn} FROM ${opts.table} WHERE ${opts.statusColumn} IN (${placeholders}) AND ${opts.updatedAtColumn} < NOW() - (${timeoutParam} || ' milliseconds')::interval`;
+  const timeFilter =
+    opts.backend === "pg"
+      ? `${opts.updatedAtColumn} < NOW() - (${timeoutParam} || ' milliseconds')::interval`
+      : `${opts.updatedAtColumn} < datetime('now', '-' || (${timeoutParam} / 1000) || ' seconds')`;
+  const sql = `SELECT ${opts.idColumn} FROM ${opts.table} WHERE ${opts.statusColumn} IN (${placeholders}) AND ${timeFilter}`;
   const rows = await ops.query<Record<string, unknown>>(sql, [
     ...opts.stuckStatuses,
     opts.timeoutMs,
