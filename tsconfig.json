@@ -10,7 +10,5 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "types": ["@types/bun"]
-  },
-  "include": ["src/**/*.ts", "src/**/*.d.ts", "test/**/*.ts"],
-  "exclude": ["packages/**"]
+  }
 }
