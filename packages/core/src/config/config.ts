@@ -2,23 +2,28 @@ import path from "path";
 import os from "os";
 import { mkdir, readFile, writeFile } from "fs/promises";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function deepMerge(base: any, override: any): any {
-  return Object.keys(override).reduce(
-    (acc, key) => {
-      const val = override[key];
-      if (
-        val !== undefined &&
-        val !== null &&
-        typeof val === "object" &&
-        !Array.isArray(val)
-      ) {
-        return { ...acc, [key]: deepMerge(acc[key] ?? {}, val) };
-      }
-      return val !== undefined ? { ...acc, [key]: val } : acc;
-    },
-    { ...base },
-  );
+function isPlainObject(v: unknown): v is Record<string, unknown> {
+  return v !== null && typeof v === "object" && !Array.isArray(v);
+}
+
+function deepMerge(
+  base: Record<string, unknown>,
+  override: Record<string, unknown>,
+): Record<string, unknown> {
+  const result = { ...base };
+  for (const key of Object.keys(override)) {
+    const val = override[key];
+    if (val === undefined) continue;
+    if (isPlainObject(val) && isPlainObject(result[key])) {
+      result[key] = deepMerge(
+        result[key] as Record<string, unknown>,
+        val,
+      );
+    } else {
+      result[key] = val;
+    }
+  }
+  return result;
 }
 
 async function loadJsonFile<T>(filePath: string): Promise<Partial<T>> {
@@ -50,7 +55,10 @@ export async function loadConfig<T>(
     loadJsonFile<T>(localPath),
   ]);
 
-  return deepMerge(deepMerge(defaults, global), local) as T;
+  return deepMerge(
+    deepMerge(defaults as Record<string, unknown>, global as Record<string, unknown>),
+    local as Record<string, unknown>,
+  ) as T;
 }
 
 function validateAppName(appName: string): void {
