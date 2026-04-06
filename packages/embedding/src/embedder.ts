@@ -1,5 +1,5 @@
 import type { EmbeddingProvider } from "./provider";
-import { logEvent } from "@easier/logging";
+import { logEvent } from "@easier-idx/logging";
 
 const MAX_EMBED_CHARS = 4_000;
 

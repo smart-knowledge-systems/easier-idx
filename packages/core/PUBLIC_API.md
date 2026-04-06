@@ -1,6 +1,6 @@
 # Public API
 
-This document defines the supported public API for `@easier/core`.
+This document defines the supported public API for `@easier-idx/core`.
 
 Even while the package is in `0.x`, the symbols listed here are treated as the semver contract. Removing, renaming, or changing them incompatibly should come with:
 
@@ -12,7 +12,7 @@ The package currently targets Bun at runtime. The public API below covers the pa
 
 ## Root Entrypoint
 
-Specifier: `@easier/core`
+Specifier: `@easier-idx/core`
 
 ### Runtime exports
 
@@ -22,8 +22,8 @@ Specifier: `@easier/core`
 | Search | `tokenize`, `buildIndex`, `bm25Score`, `computeHybridScore`, `buildExplanation`, `applyRerankers`, `expandQuery`, `CODE_ABBREVIATIONS`, `buildBM25Context` |
 | Eval | `precisionAtK`, `hitRateAtK`, `recall`, `mrr`, `ndcg`, `evaluateGates`, `allGatesPassed` |
 | Config | `loadConfig`, `getGlobalConfigPath`, `writeGlobalConfig`, `deepMerge` |
-| Logging | `initLogging`, `logEvent`, `setCorrelationContext`, `getSessionId`, `hashPath`, `withTimingSync`, `withTimingAsync` (re-exported from `@easier/logging`) |
-| Cluster | `kmeans`, `kmeansSearch`, `classify`, `voteAll`, `voteSubset`, `voteDeepest`, `voteMostSpecific`, `silhouetteScore`, `sampleRepresentative`, `extractTopTerms` (re-exported from `@easier/clustering`) |
+| Logging | `initLogging`, `logEvent`, `setCorrelationContext`, `getSessionId`, `hashPath`, `withTimingSync`, `withTimingAsync` (re-exported from `@easier-idx/logging`) |
+| Cluster | `kmeans`, `kmeansSearch`, `classify`, `voteAll`, `voteSubset`, `voteDeepest`, `voteMostSpecific`, `silhouetteScore`, `sampleRepresentative`, `extractTopTerms` (re-exported from `@easier-idx/clustering`) |
 
 ### Type exports
 
@@ -39,21 +39,21 @@ Specifier: `@easier/core`
 
 | Specifier | Runtime exports | Type exports |
 | --- | --- | --- |
-| `@easier/core/db` | `serializeEmbedding`, `deserializeEmbedding`, `cosineSimilarity` | None |
-| `@easier/core/db/store` | `createSqliteStoreOps`, `createPgStoreOps`, `pgToSqlite` | None |
-| `@easier/core/db/sqlite` | `getSqlite`, `closeSqlite` | `SqliteConfig` |
-| `@easier/core/db/pg` | `getPg`, `pgUnsafe`, `closePg` | `PgConfig` |
-| `@easier/core/db/migrate` | `applyMigrations`, `getCurrentSchemaVersion`, `getLatestMigrationVersion`, `migrationChecksum` | None |
-| `@easier/core/search` | `computeHybridScore`, `buildExplanation` | `BoostTerm`, `HybridScoreInput` |
-| `@easier/core/search/bm25` | `tokenize`, `buildIndex`, `score` | `BM25Index` |
-| `@easier/core/search/bm25-helpers` | `buildBM25Context` | `BM25Context` |
-| `@easier/core/eval/gate` | `evaluateGates`, `allGatesPassed` | `QualityGate`, `GateResult` |
-| `@easier/core/eval/metrics` | `precisionAtK`, `hitRateAtK`, `recall`, `mrr`, `ndcg` | None |
-| `@easier/core/config` | `loadConfig`, `getGlobalConfigPath`, `writeGlobalConfig`, `deepMerge` | None |
-| `@easier/core/cluster` | `kmeans`, `kmeansSearch` (re-exported from `@easier/clustering`) | None |
-| `@easier/core/cluster/classify` | `classify`, `voteAll`, `voteSubset`, `voteDeepest`, `voteMostSpecific` (re-exported from `@easier/clustering`) | None |
-| `@easier/core/cluster/silhouette` | `silhouetteScore` (re-exported from `@easier/clustering`) | None |
-| `@easier/core/cluster/describe` | `sampleRepresentative`, `extractTopTerms` (re-exported from `@easier/clustering`) | None |
+| `@easier-idx/core/db` | `serializeEmbedding`, `deserializeEmbedding`, `cosineSimilarity` | None |
+| `@easier-idx/core/db/store` | `createSqliteStoreOps`, `createPgStoreOps`, `pgToSqlite` | None |
+| `@easier-idx/core/db/sqlite` | `getSqlite`, `closeSqlite` | `SqliteConfig` |
+| `@easier-idx/core/db/pg` | `getPg`, `pgUnsafe`, `closePg` | `PgConfig` |
+| `@easier-idx/core/db/migrate` | `applyMigrations`, `getCurrentSchemaVersion`, `getLatestMigrationVersion`, `migrationChecksum` | None |
+| `@easier-idx/core/search` | `computeHybridScore`, `buildExplanation` | `BoostTerm`, `HybridScoreInput` |
+| `@easier-idx/core/search/bm25` | `tokenize`, `buildIndex`, `score` | `BM25Index` |
+| `@easier-idx/core/search/bm25-helpers` | `buildBM25Context` | `BM25Context` |
+| `@easier-idx/core/eval/gate` | `evaluateGates`, `allGatesPassed` | `QualityGate`, `GateResult` |
+| `@easier-idx/core/eval/metrics` | `precisionAtK`, `hitRateAtK`, `recall`, `mrr`, `ndcg` | None |
+| `@easier-idx/core/config` | `loadConfig`, `getGlobalConfigPath`, `writeGlobalConfig`, `deepMerge` | None |
+| `@easier-idx/core/cluster` | `kmeans`, `kmeansSearch` (re-exported from `@easier-idx/clustering`) | None |
+| `@easier-idx/core/cluster/classify` | `classify`, `voteAll`, `voteSubset`, `voteDeepest`, `voteMostSpecific` (re-exported from `@easier-idx/clustering`) | None |
+| `@easier-idx/core/cluster/silhouette` | `silhouetteScore` (re-exported from `@easier-idx/clustering`) | None |
+| `@easier-idx/core/cluster/describe` | `sampleRepresentative`, `extractTopTerms` (re-exported from `@easier-idx/clustering`) | None |
 
 ## Enforcement
 

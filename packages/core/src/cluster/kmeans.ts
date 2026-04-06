@@ -1,1 +1,1 @@
-export { kmeans, kmeansSearch } from "@easier/clustering";
+export { kmeans, kmeansSearch } from "@easier-idx/clustering";

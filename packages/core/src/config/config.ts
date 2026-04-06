@@ -15,10 +15,7 @@ function deepMerge(
     const val = override[key];
     if (val === undefined) continue;
     if (isPlainObject(val) && isPlainObject(result[key])) {
-      result[key] = deepMerge(
-        result[key] as Record<string, unknown>,
-        val,
-      );
+      result[key] = deepMerge(result[key] as Record<string, unknown>, val);
     } else {
       result[key] = val;
     }
@@ -56,7 +53,10 @@ export async function loadConfig<T>(
   ]);
 
   return deepMerge(
-    deepMerge(defaults as Record<string, unknown>, global as Record<string, unknown>),
+    deepMerge(
+      defaults as Record<string, unknown>,
+      global as Record<string, unknown>,
+    ),
     local as Record<string, unknown>,
   ) as T;
 }

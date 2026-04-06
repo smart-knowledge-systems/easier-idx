@@ -1,5 +1,5 @@
-import type { StoreOps } from "@easier/core";
-import type { TokenUsage } from "@easier/core/usage";
+import type { StoreOps } from "@easier-idx/core";
+import type { TokenUsage } from "@easier-idx/core/usage";
 import type { GlossaryTerm, GenerateTermsResult } from "./types";
 import { findTerms, saveTerms } from "./store";
 

@@ -1,4 +1,4 @@
-import type { TokenUsage } from "@easier/core/usage";
+import type { TokenUsage } from "@easier-idx/core/usage";
 
 export interface GenerateDescriptionResult<T = string> {
   description: T;

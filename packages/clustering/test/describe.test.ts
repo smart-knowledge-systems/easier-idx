@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { sampleRepresentative, extractTopTerms } from "../src/describe";
-import type { Cluster } from "@easier/core";
+import type { Cluster } from "@easier-idx/core";
 
 describe("sampleRepresentative", () => {
   const cluster: Cluster = {

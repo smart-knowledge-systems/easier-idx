@@ -1,11 +1,11 @@
-# @easier/embedding
+# @easier-idx/embedding
 
 Pluggable embedding providers and cost tracking for [EASIER](https://github.com/example/easier) systems.
 
 ## Install
 
 ```bash
-bun add @easier/embedding
+bun add @easier-idx/embedding
 ```
 
 ## Providers
@@ -19,8 +19,8 @@ bun add @easier/embedding
 ## Quick start
 
 ```typescript
-import { embed, embedSingle, getProvider } from "@easier/embedding";
-import type { EmbeddingConfig } from "@easier/embedding";
+import { embed, embedSingle, getProvider } from "@easier-idx/embedding";
+import type { EmbeddingConfig } from "@easier-idx/embedding";
 
 const config = {
   embedding: {
@@ -40,7 +40,7 @@ const vec = await embedSingle("hello world", config);
 ## Cost tracking
 
 ```typescript
-import { withCostContext, getCostSummary, checkCostCap } from "@easier/embedding";
+import { withCostContext, getCostSummary, checkCostCap } from "@easier-idx/embedding";
 
 // Wrap embedding calls in a cost context to persist cost events
 await withCostContext(storeOps, async () => {
@@ -54,4 +54,4 @@ const summary = await getCostSummary(storeOps);
 
 ## Peer dependencies
 
-`@easier/core` is an **optional peer dependency**. If present, structured logging via `logEvent` is enabled automatically.
+`@easier-idx/core` is an **optional peer dependency**. If present, structured logging via `logEvent` is enabled automatically.

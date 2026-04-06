@@ -4,4 +4,4 @@ export {
   voteSubset,
   voteDeepest,
   voteMostSpecific,
-} from "@easier/clustering";
+} from "@easier-idx/clustering";

@@ -1,1 +1,1 @@
-export { silhouetteScore } from "@easier/clustering";
+export { silhouetteScore } from "@easier-idx/clustering";

@@ -101,9 +101,12 @@ export function getSqlite(
   config: SqliteConfig,
   baseDir?: string,
 ): SqliteDatabase {
-  const dbPath = path.isAbsolute(config.path)
-    ? config.path
-    : path.join(baseDir ?? process.cwd(), config.path);
+  const dbPath =
+    config.path === ":memory:"
+      ? ":memory:"
+      : path.isAbsolute(config.path)
+        ? config.path
+        : path.join(baseDir ?? process.cwd(), config.path);
   const cached = sqliteConnections.get(dbPath);
   if (cached) return cached;
   const db = isBunRuntime()

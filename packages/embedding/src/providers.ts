@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// Built-in provider implementations — optional, import via @easier/embedding/providers
+// Built-in provider implementations — optional, import via @easier-idx/embedding/providers
 // Consumers can use these or implement their own EmbeddingProvider.
 // ---------------------------------------------------------------------------
 

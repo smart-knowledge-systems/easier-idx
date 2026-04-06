@@ -36,7 +36,7 @@ const buildResult = await Bun.build({
   splitting: false,
   sourcemap: "external",
   naming: "[dir]/[name].js",
-  external: ["bun", "bun:sqlite", "sqlite-vec", "pg", "better-sqlite3", "@easier/logging", "@easier/clustering"],
+  external: ["bun", "bun:sqlite", "sqlite-vec", "pg", "better-sqlite3", "@easier-idx/logging", "@easier-idx/clustering"],
 });
 
 if (!buildResult.success) {

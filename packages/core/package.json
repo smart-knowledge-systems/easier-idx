@@ -1,5 +1,5 @@
 {
-  "name": "@easier/core",
+  "name": "@easier-idx/core",
   "version": "0.1.0",
   "license": "MIT",
   "author": "Russ T Fugal <russ-fugal@smart-knowledge-systems.com>",
@@ -111,8 +111,8 @@
     "README.md"
   ],
   "dependencies": {
-    "@easier/clustering": "workspace:*",
-    "@easier/logging": "workspace:*",
+    "@easier-idx/clustering": "workspace:*",
+    "@easier-idx/logging": "workspace:*",
     "sqlite-vec": "^0.1.7"
   },
   "optionalDependencies": {

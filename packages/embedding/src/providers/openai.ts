@@ -1,7 +1,7 @@
 import type { EmbeddingProvider } from "../provider";
 import { recordCost } from "../cost";
-import { logEvent } from "@easier/logging";
-import { retryWithBackoff } from "@easier/core";
+import { logEvent } from "@easier-idx/logging";
+import { retryWithBackoff } from "@easier-idx/core";
 
 const BATCH_SIZE = 256;
 

@@ -34,7 +34,9 @@ export async function pollBatches(
         return [id, result] as const;
       }),
     );
-    results.push(...chunkResults.map(([id, r]) => [id, r] as [string, BatchPollResult]));
+    results.push(
+      ...chunkResults.map(([id, r]) => [id, r] as [string, BatchPollResult]),
+    );
   }
 
   return new Map(results);

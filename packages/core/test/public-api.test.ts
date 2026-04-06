@@ -13,7 +13,7 @@ describe("public API contract", () => {
   });
 
   test("root runtime exports stay backward compatible", async () => {
-    const module = await import("@easier/core");
+    const module = await import("@easier-idx/core");
 
     expect(Object.keys(module)).toEqual(
       expect.arrayContaining([...ROOT_RUNTIME_EXPORTS]),

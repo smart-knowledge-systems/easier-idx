@@ -1,1 +1,1 @@
-export { sampleRepresentative, extractTopTerms } from "@easier/clustering";
+export { sampleRepresentative, extractTopTerms } from "@easier-idx/clustering";

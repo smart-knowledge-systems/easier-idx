@@ -5,7 +5,7 @@
 // and extract keywords — the consumer provides the LLM call.
 // ---------------------------------------------------------------------------
 
-import type { Cluster } from "@easier/core";
+import type { Cluster } from "@easier-idx/core";
 
 /**
  * Sample representative document IDs from a cluster for description.

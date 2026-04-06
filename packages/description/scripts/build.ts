@@ -13,7 +13,7 @@ const buildResult = await Bun.build({
   splitting: false,
   sourcemap: "external",
   naming: "[name].js",
-  external: ["bun", "@easier/core", "@easier/logging"],
+  external: ["bun", "@easier-idx/core", "@easier-idx/logging"],
 });
 
 if (!buildResult.success) {

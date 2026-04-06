@@ -12,7 +12,7 @@ const buildResult = await Bun.build({
   splitting: false,
   sourcemap: "external",
   naming: "[name].js",
-  external: ["bun", "@easier/core"],
+  external: ["bun", "@easier-idx/core"],
 });
 
 if (!buildResult.success) {

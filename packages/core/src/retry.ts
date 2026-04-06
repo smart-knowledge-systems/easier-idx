@@ -3,7 +3,7 @@
 // STEERING #6 (explicit over implicit) — all options passed as parameters
 // ---------------------------------------------------------------------------
 
-import { logEvent } from "@easier/logging";
+import { logEvent } from "@easier-idx/logging";
 
 export interface RetryOpts {
   /** Maximum number of retries (default: 3). */

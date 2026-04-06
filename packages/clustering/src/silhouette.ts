@@ -24,7 +24,9 @@ export function silhouetteScore(
   if (n <= 1) return 0;
 
   // Normalize all vectors
-  const vecs: Float64Array[] = items.map((item) => normalizeVec(item.embedding));
+  const vecs: Float64Array[] = items.map((item) =>
+    normalizeVec(item.embedding),
+  );
 
   // Build cluster index
   const clusterIds = [...new Set(items.map((item) => item.clusterId))];

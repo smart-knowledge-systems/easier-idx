@@ -50,7 +50,7 @@ import {
   withTimingAsync,
   withTimingSync,
   writeGlobalConfig,
-} from "@easier/core";
+} from "@easier-idx/core";
 import type {
   BM25Context,
   BM25Index,
@@ -87,19 +87,19 @@ import type {
   SqliteConfig,
   StoreOps,
   VotingStrategy,
-} from "@easier/core";
-import type { SqliteConfig as SqliteConfigSubpath } from "@easier/core/db/sqlite";
-import type { PgConfig as PgConfigSubpath } from "@easier/core/db/pg";
+} from "@easier-idx/core";
+import type { SqliteConfig as SqliteConfigSubpath } from "@easier-idx/core/db/sqlite";
+import type { PgConfig as PgConfigSubpath } from "@easier-idx/core/db/pg";
 import type {
   BoostTerm as BoostTermSubpath,
   HybridScoreInput as HybridScoreInputSubpath,
-} from "@easier/core/search";
-import type { BM25Index as BM25IndexSubpath } from "@easier/core/search/bm25";
-import type { BM25Context as BM25ContextSubpath } from "@easier/core/search/bm25-helpers";
+} from "@easier-idx/core/search";
+import type { BM25Index as BM25IndexSubpath } from "@easier-idx/core/search/bm25";
+import type { BM25Context as BM25ContextSubpath } from "@easier-idx/core/search/bm25-helpers";
 import type {
   GateResult as GateResultSubpath,
   QualityGate as QualityGateSubpath,
-} from "@easier/core/eval/gate";
+} from "@easier-idx/core/eval/gate";
 
 interface ExampleMeta {
   year: number;

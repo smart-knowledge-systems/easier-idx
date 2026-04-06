@@ -1,5 +1,5 @@
 /**
- * Embedding provider config — used by built-in providers in @easier/embedding/providers.
+ * Embedding provider config — used by built-in providers in @easier-idx/embedding/providers.
  * Not required when bringing your own EmbeddingProvider.
  */
 export interface EmbeddingConfig {

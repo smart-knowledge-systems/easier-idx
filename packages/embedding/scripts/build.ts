@@ -17,7 +17,7 @@ const buildResult = await Bun.build({
   splitting: false,
   sourcemap: "external",
   naming: "[name].js",
-  external: ["bun", "openai", "@easier/core", "@easier/logging"],
+  external: ["bun", "openai", "@easier-idx/core", "@easier-idx/logging"],
 });
 
 if (!buildResult.success) {

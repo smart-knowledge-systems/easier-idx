@@ -1,6 +1,6 @@
 import { describe, it, expect } from "bun:test";
-import { getSqlite } from "@easier/core/db/sqlite";
-import { createSqliteStoreOps } from "@easier/core/db/store";
+import { getSqlite } from "@easier-idx/core/db/sqlite";
+import { createSqliteStoreOps } from "@easier-idx/core/db/store";
 import { ensureTerms } from "../src/ensure";
 
 describe("ensureTerms", () => {

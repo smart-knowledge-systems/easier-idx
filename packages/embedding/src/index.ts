@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// @easier/embedding — barrel export
+// @easier-idx/embedding — barrel export
 // ---------------------------------------------------------------------------
 
 // Provider interface — consumers implement this

@@ -44,10 +44,7 @@ const costStorage = new AsyncLocalStorage<CostContext>();
  * Run `fn` with a scoped cost context. All `recordCost` calls within `fn`
  * will use this context's StoreOps to persist cost events.
  */
-export function withCostContext<T>(
-  ops: StoreOps,
-  fn: () => T,
-): T {
+export function withCostContext<T>(ops: StoreOps, fn: () => T): T {
   return costStorage.run({ ops }, fn);
 }
 

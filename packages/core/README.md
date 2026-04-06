@@ -1,4 +1,4 @@
-# @easier/core
+# @easier-idx/core
 
 Framework for building **EASIER** systems — **E**mbedding-**A**ugmented **S**emantic **I**ndex for **E**fficient **R**etrieval.
 
@@ -15,7 +15,7 @@ This distinguishes EASIER from RAG: RAG retrieves content to feed a generator; E
 ## Install
 
 ```bash
-bun add @easier/core
+bun add @easier-idx/core
 ```
 
 Requires [Bun](https://bun.sh) runtime.
@@ -34,11 +34,11 @@ so breaking API changes fail CI before release.
 
 ## Runtime support
 
-`@easier/core` is Bun-native first and ships Node fallbacks for the following:
+`@easier-idx/core` is Bun-native first and ships Node fallbacks for the following:
 
-- `@easier/core/config`
-- `@easier/core/db/pg` via optional `pg`
-- `@easier/core/db/sqlite` via optional `better-sqlite3`
+- `@easier-idx/core/config`
+- `@easier-idx/core/db/pg` via optional `pg`
+- `@easier-idx/core/db/sqlite` via optional `better-sqlite3`
 
 The SQLite fallback is functional for core database access, but Bun remains the
 primary runtime for the full sqlite-vec path.
@@ -52,10 +52,10 @@ CI validates:
 
 Cluster APIs are also part of the published package surface:
 
-- `@easier/core/cluster`
-- `@easier/core/cluster/classify`
-- `@easier/core/cluster/silhouette`
-- `@easier/core/cluster/describe`
+- `@easier-idx/core/cluster`
+- `@easier-idx/core/cluster/classify`
+- `@easier-idx/core/cluster/silhouette`
+- `@easier-idx/core/cluster/describe`
 
 ## Quick start
 
@@ -63,7 +63,7 @@ Cluster APIs are also part of the published package surface:
 import {
   buildIndex, bm25Score, computeHybridScore,
   loadConfig, type EasierConfig, type Document,
-} from "@easier/core";
+} from "@easier-idx/core";
 
 // 1. Define your document type
 interface PaperMeta {
@@ -81,7 +81,7 @@ interface MyConfig extends EasierConfig {
 // 3. Load config (merges ~/.config/myapp/config.json + .myapp.json)
 const config = await loadConfig<MyConfig>("myapp", defaults);
 
-// 4. Embed with your preferred provider (see @easier/embedding) and search
+// 4. Embed with your preferred provider (see @easier-idx/embedding) and search
 const queryVec = await yourEmbedder.embedSingle("transformer protein folding");
 const candidates = await myStore.vectorSearch(queryVec, 100);
 
@@ -109,7 +109,7 @@ const results = candidates.map(c => ({
 import {
   getSqlite, createSqliteStoreOps,
   type StoreOps,
-} from "@easier/core";
+} from "@easier-idx/core";
 
 // Open a connection and wrap it in StoreOps
 const db = getSqlite({ path: "./my-index.db" });
@@ -122,7 +122,7 @@ const rows = await ops.query<{ id: number; name: string }>("SELECT * FROM items"
 
 ## Database security — avoiding SQL injection
 
-`@easier/core/db/pg` exposes two query interfaces: **tagged template literals** and the **`unsafe()` method**. They have different safety guarantees.
+`@easier-idx/core/db/pg` exposes two query interfaces: **tagged template literals** and the **`unsafe()` method**. They have different safety guarantees.
 
 ### Tagged template literals (safe by default)
 
@@ -262,7 +262,7 @@ interface DocumentStore<TMeta> {
 ## Eval and quality gates
 
 ```typescript
-import { precisionAtK, mrr, ndcg, evaluateGates, allGatesPassed } from "@easier/core";
+import { precisionAtK, mrr, ndcg, evaluateGates, allGatesPassed } from "@easier-idx/core";
 
 // Compute metrics
 const p5 = precisionAtK(returnedIds, expectedIds, 5);
@@ -283,7 +283,7 @@ if (!allGatesPassed(results)) {
 ## Reranking
 
 ```typescript
-import { applyRerankers, type Reranker } from "@easier/core";
+import { applyRerankers, type Reranker } from "@easier-idx/core";
 
 // Implement domain-specific rerankers
 const citationReranker: Reranker<PaperMeta> = {
@@ -307,7 +307,7 @@ const reranked = await applyRerankers(results, [citationReranker], {
 ## Query expansion
 
 ```typescript
-import { expandQuery, CODE_ABBREVIATIONS } from "@easier/core";
+import { expandQuery, CODE_ABBREVIATIONS } from "@easier-idx/core";
 
 // Code-centric (default)
 expandQuery("getUserAuth");
@@ -324,10 +324,10 @@ expandQuery("ML transformers", ACADEMIC);
 Import specific modules to minimize bundle impact:
 
 ```typescript
-import { computeHybridScore } from "@easier/core/search";
-import { getSqlite } from "@easier/core/db/sqlite";
-import { loadConfig } from "@easier/core/config";
-import { precisionAtK } from "@easier/core/eval/metrics";
+import { computeHybridScore } from "@easier-idx/core/search";
+import { getSqlite } from "@easier-idx/core/db/sqlite";
+import { loadConfig } from "@easier-idx/core/config";
+import { precisionAtK } from "@easier-idx/core/eval/metrics";
 ```
 
 ## Design principles

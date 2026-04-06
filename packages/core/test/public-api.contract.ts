@@ -55,7 +55,7 @@ export const ROOT_RUNTIME_EXPORTS = [
 export const SUBPATH_CONTRACT = [
   {
     exportKey: "./db",
-    specifier: "@easier/core/db",
+    specifier: "@easier-idx/core/db",
     runtimeExports: [
       "cosineSimilarity",
       "deserializeEmbedding",
@@ -64,7 +64,7 @@ export const SUBPATH_CONTRACT = [
   },
   {
     exportKey: "./db/store",
-    specifier: "@easier/core/db/store",
+    specifier: "@easier-idx/core/db/store",
     runtimeExports: [
       "createPgStoreOps",
       "createSqliteStoreOps",
@@ -73,17 +73,17 @@ export const SUBPATH_CONTRACT = [
   },
   {
     exportKey: "./db/sqlite",
-    specifier: "@easier/core/db/sqlite",
+    specifier: "@easier-idx/core/db/sqlite",
     runtimeExports: ["closeSqlite", "getSqlite"] as const,
   },
   {
     exportKey: "./db/pg",
-    specifier: "@easier/core/db/pg",
+    specifier: "@easier-idx/core/db/pg",
     runtimeExports: ["closePg", "getPg", "pgUnsafe"] as const,
   },
   {
     exportKey: "./db/migrate",
-    specifier: "@easier/core/db/migrate",
+    specifier: "@easier-idx/core/db/migrate",
     runtimeExports: [
       "applyMigrations",
       "getCurrentSchemaVersion",
@@ -93,27 +93,27 @@ export const SUBPATH_CONTRACT = [
   },
   {
     exportKey: "./search",
-    specifier: "@easier/core/search",
+    specifier: "@easier-idx/core/search",
     runtimeExports: ["buildExplanation", "computeHybridScore"] as const,
   },
   {
     exportKey: "./search/bm25",
-    specifier: "@easier/core/search/bm25",
+    specifier: "@easier-idx/core/search/bm25",
     runtimeExports: ["buildIndex", "score", "tokenize"] as const,
   },
   {
     exportKey: "./search/bm25-helpers",
-    specifier: "@easier/core/search/bm25-helpers",
+    specifier: "@easier-idx/core/search/bm25-helpers",
     runtimeExports: ["buildBM25Context"] as const,
   },
   {
     exportKey: "./eval/gate",
-    specifier: "@easier/core/eval/gate",
+    specifier: "@easier-idx/core/eval/gate",
     runtimeExports: ["allGatesPassed", "evaluateGates"] as const,
   },
   {
     exportKey: "./eval/metrics",
-    specifier: "@easier/core/eval/metrics",
+    specifier: "@easier-idx/core/eval/metrics",
     runtimeExports: [
       "hitRateAtK",
       "mrr",
@@ -124,7 +124,7 @@ export const SUBPATH_CONTRACT = [
   },
   {
     exportKey: "./config",
-    specifier: "@easier/core/config",
+    specifier: "@easier-idx/core/config",
     runtimeExports: [
       "deepMerge",
       "getGlobalConfigPath",
@@ -134,12 +134,12 @@ export const SUBPATH_CONTRACT = [
   },
   {
     exportKey: "./cluster",
-    specifier: "@easier/core/cluster",
+    specifier: "@easier-idx/core/cluster",
     runtimeExports: ["kmeans", "kmeansSearch"] as const,
   },
   {
     exportKey: "./cluster/classify",
-    specifier: "@easier/core/cluster/classify",
+    specifier: "@easier-idx/core/cluster/classify",
     runtimeExports: [
       "classify",
       "voteAll",
@@ -150,12 +150,12 @@ export const SUBPATH_CONTRACT = [
   },
   {
     exportKey: "./cluster/silhouette",
-    specifier: "@easier/core/cluster/silhouette",
+    specifier: "@easier-idx/core/cluster/silhouette",
     runtimeExports: ["silhouetteScore"] as const,
   },
   {
     exportKey: "./cluster/describe",
-    specifier: "@easier/core/cluster/describe",
+    specifier: "@easier-idx/core/cluster/describe",
     runtimeExports: ["extractTopTerms", "sampleRepresentative"] as const,
   },
 ] as const;
