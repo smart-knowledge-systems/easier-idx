@@ -1,11 +1,11 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import { logEvent } from "@easier/logging";
+import { logEvent } from "@easier-idx/logging";
 
 // ---------------------------------------------------------------------------
-// StoreOps — inline minimal interface to avoid hard dependency on @easier/core
+// StoreOps — inline minimal interface to avoid hard dependency on @easier-idx/core
 // ---------------------------------------------------------------------------
 
-/** Store-agnostic database operations (mirrors @easier/core StoreOps). */
+/** Store-agnostic database operations (mirrors @easier-idx/core StoreOps). */
 export interface StoreOps {
   query: <T>(sql: string, params?: unknown[]) => Promise<T[]>;
   run: (sql: string, params?: unknown[]) => Promise<void>;
@@ -61,7 +61,10 @@ export function computeCostUsd(
   tokensOut: number,
 ): number {
   const pricing = PRICING[model] ?? null;
-  if (!pricing) return 0;
+  if (!pricing) {
+    logEvent({ event: "cost.pricing_missing", model });
+    return 0;
+  }
   const inputCost = (tokensIn * pricing.input) / 1_000_000;
   const outputCost =
     pricing.output != null ? (tokensOut * pricing.output) / 1_000_000 : 0;
