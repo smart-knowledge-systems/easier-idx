@@ -17,6 +17,11 @@ export function buildBM25Context(
   if (docs.length === 0) return { scores: new Map(), maxScore: 1 };
   const index = buildBM25Index(docs);
   const scores = scoreBM25(index, query);
-  const maxScore = scores.size > 0 ? Math.max(...scores.values()) : 1;
+  let maxScore = 1;
+  if (scores.size > 0) {
+    let m = -Infinity;
+    for (const v of scores.values()) if (v > m) m = v;
+    maxScore = m;
+  }
   return { scores, maxScore };
 }
