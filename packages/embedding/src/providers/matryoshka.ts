@@ -9,7 +9,7 @@ import type { EmbeddingProvider } from "../provider";
 
 /** Truncate a vector and L2-renormalize for cosine similarity correctness. */
 function truncateAndNormalize(vec: number[], dims: number): number[] {
-  const truncated = vec.length > dims ? vec.slice(0, dims) : vec;
+  const truncated = vec.slice(0, dims);
   let norm = 0;
   for (let i = 0; i < truncated.length; i++)
     norm += truncated[i] * truncated[i];
