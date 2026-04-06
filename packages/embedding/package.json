@@ -1,0 +1,53 @@
+{
+  "name": "@easier/embedding",
+  "version": "0.1.0",
+  "license": "MIT",
+  "author": "Russ T Fugal <russ-fugal@smart-knowledge-systems.com>",
+  "description": "Pluggable embedding providers and cost tracking for EASIER systems",
+  "keywords": [
+    "embeddings",
+    "openai",
+    "ollama",
+    "embedding-provider",
+    "cost-tracking"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./cost": {
+      "types": "./dist/cost.d.ts",
+      "import": "./dist/cost.js"
+    },
+    "./providers": {
+      "types": "./dist/providers.d.ts",
+      "import": "./dist/providers.js"
+    }
+  },
+  "files": [
+    "LICENSE",
+    "dist/",
+    "README.md"
+  ],
+  "dependencies": {
+    "@easier/core": "workspace:*",
+    "@easier/logging": "workspace:*"
+  },
+  "optionalDependencies": {
+    "openai": "^4.77.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.10",
+    "typescript": "^5.7.0"
+  },
+  "scripts": {
+    "build": "bun run ./scripts/build.ts",
+    "typecheck": "bunx tsc --noEmit",
+    "check": "bun run typecheck && bun run build",
+    "test": "bun run build && bun test"
+  }
+}
