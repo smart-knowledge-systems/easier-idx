@@ -1,0 +1,108 @@
+import { describe, expect, test } from "bun:test";
+import { retryWithBackoff } from "../src/retry";
+
+describe("retryWithBackoff", () => {
+  test("returns result on first success", async () => {
+    const result = await retryWithBackoff(async () => 42, {
+      baseDelayMs: 1,
+    });
+    expect(result).toBe(42);
+  });
+
+  test("retries on transient error and succeeds", async () => {
+    let calls = 0;
+    const result = await retryWithBackoff(
+      async () => {
+        calls++;
+        if (calls < 3) {
+          const err = new TypeError("fetch failed");
+          throw err;
+        }
+        return "ok";
+      },
+      { baseDelayMs: 1 },
+    );
+    expect(result).toBe("ok");
+    expect(calls).toBe(3);
+  });
+
+  test("throws after exhausting retries", async () => {
+    let calls = 0;
+    await expect(
+      retryWithBackoff(
+        async () => {
+          calls++;
+          throw new TypeError("network");
+        },
+        { maxRetries: 2, baseDelayMs: 1 },
+      ),
+    ).rejects.toThrow("network");
+    expect(calls).toBe(3); // 1 initial + 2 retries
+  });
+
+  test("does not retry non-retryable errors", async () => {
+    let calls = 0;
+    await expect(
+      retryWithBackoff(
+        async () => {
+          calls++;
+          throw new Error("fatal");
+        },
+        { baseDelayMs: 1 },
+      ),
+    ).rejects.toThrow("fatal");
+    expect(calls).toBe(1);
+  });
+
+  test("retries on 429 status errors", async () => {
+    let calls = 0;
+    const result = await retryWithBackoff(
+      async () => {
+        calls++;
+        if (calls === 1) {
+          const err = new Error("rate limited") as Error & { status: number };
+          err.status = 429;
+          throw err;
+        }
+        return "done";
+      },
+      { baseDelayMs: 1 },
+    );
+    expect(result).toBe("done");
+    expect(calls).toBe(2);
+  });
+
+  test("calls onRetry callback", async () => {
+    const retries: number[] = [];
+    let calls = 0;
+    await retryWithBackoff(
+      async () => {
+        calls++;
+        if (calls < 2) throw new TypeError("fail");
+        return true;
+      },
+      {
+        baseDelayMs: 1,
+        onRetry: (attempt) => retries.push(attempt),
+      },
+    );
+    expect(retries).toEqual([1]);
+  });
+
+  test("respects custom isRetryable", async () => {
+    let calls = 0;
+    await expect(
+      retryWithBackoff(
+        async () => {
+          calls++;
+          throw new Error("custom");
+        },
+        {
+          baseDelayMs: 1,
+          isRetryable: () => false,
+        },
+      ),
+    ).rejects.toThrow("custom");
+    expect(calls).toBe(1);
+  });
+});
