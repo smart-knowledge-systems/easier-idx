@@ -8,24 +8,8 @@ import type {
   ClusterDef,
   LabeledItem,
   VotingStrategy,
-} from "@easier/core";
-
-// ── Vector math ─────────────────────────────────────────────────────────
-
-function dot(a: Float64Array, b: Float64Array): number {
-  let s = 0;
-  for (let i = 0; i < a.length; i++) s += a[i] * b[i];
-  return s;
-}
-
-function normalizeVec(v: number[]): Float64Array {
-  const f = new Float64Array(v);
-  let n = 0;
-  for (let i = 0; i < f.length; i++) n += f[i] * f[i];
-  n = Math.sqrt(n);
-  if (n > 0) for (let i = 0; i < f.length; i++) f[i] /= n;
-  return f;
-}
+} from "@easier-idx/core";
+import { dot, normalizeVec } from "./vecmath";
 
 // ── Built-in voting strategies ──────────────────────────────────────────
 

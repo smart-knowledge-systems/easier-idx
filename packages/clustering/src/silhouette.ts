@@ -2,6 +2,8 @@
 // Silhouette score — standalone for eval/quality gating
 // ---------------------------------------------------------------------------
 
+import { cosineDistance, normalizeVec } from "./vecmath";
+
 /**
  * Compute the silhouette score for a set of clustered embeddings.
  *
@@ -22,12 +24,7 @@ export function silhouetteScore(
   if (n <= 1) return 0;
 
   // Normalize all vectors
-  const vecs: Float64Array[] = items.map((item) => {
-    const v = new Float64Array(item.embedding);
-    const norm = Math.sqrt(v.reduce((s, x) => s + x * x, 0));
-    if (norm > 0) for (let i = 0; i < v.length; i++) v[i] /= norm;
-    return v;
-  });
+  const vecs: Float64Array[] = items.map((item) => normalizeVec(item.embedding));
 
   // Build cluster index
   const clusterIds = [...new Set(items.map((item) => item.clusterId))];
@@ -71,7 +68,7 @@ export function silhouetteScore(
       for (let s = 0; s < limit; s++) {
         const j = myCluster[Math.floor(s * step)];
         if (j === i) continue;
-        sum += cosDist(vecs[i], vecs[j]);
+        sum += cosineDistance(vecs[i], vecs[j]);
         count++;
       }
       a = count > 0 ? sum / count : 0;
@@ -89,7 +86,7 @@ export function silhouetteScore(
           ? 1
           : indices.length / maxIntraCluster;
       for (let s = 0; s < limit; s++) {
-        sum += cosDist(vecs[i], vecs[indices[Math.floor(s * step)]]);
+        sum += cosineDistance(vecs[i], vecs[indices[Math.floor(s * step)]]);
       }
       const mean = sum / limit;
       if (mean < b) b = mean;
@@ -100,10 +97,4 @@ export function silhouetteScore(
   }
 
   return totalSilhouette / sampleIndices.length;
-}
-
-function cosDist(a: Float64Array, b: Float64Array): number {
-  let d = 0;
-  for (let i = 0; i < a.length; i++) d += a[i] * b[i];
-  return 1 - d;
 }
