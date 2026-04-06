@@ -27,17 +27,26 @@ export async function saveTerms(
 ): Promise<void> {
   assertSafeIdentifier(opts.table, "table");
   assertSafeIdentifier(opts.idColumn, "idColumn");
+  if (opts.terms.length === 0) return;
+
+  const extraKeys = opts.extraColumns ? Object.keys(opts.extraColumns) : [];
+  for (const k of extraKeys) assertSafeIdentifier(k, "extraColumn");
+  const extraValues = extraKeys.map((k) => opts.extraColumns![k]);
+  const cols = [opts.idColumn, "keyword", "definition", ...extraKeys];
+  const colsPerRow = cols.length;
+
+  const allParams: unknown[] = [];
+  const valuesClauses: string[] = [];
+
   for (const term of opts.terms) {
-    const extraKeys = opts.extraColumns ? Object.keys(opts.extraColumns) : [];
-    const extraPlaceholders = extraKeys.map((_, i) => `$${i + 4}`);
-    const extraValues = extraKeys.map((k) => opts.extraColumns![k]);
-
-    const cols = [opts.idColumn, "keyword", "definition", ...extraKeys];
-    const placeholders = ["$1", "$2", "$3", ...extraPlaceholders];
-
-    await ops.run(
-      `INSERT INTO ${opts.table} (${cols.join(", ")}) VALUES (${placeholders.join(", ")})`,
-      [opts.idValue, term.keyword, term.definition, ...extraValues],
-    );
+    const offset = allParams.length;
+    const rowPlaceholders = cols.map((_, i) => `$${offset + i + 1}`);
+    valuesClauses.push(`(${rowPlaceholders.join(", ")})`);
+    allParams.push(opts.idValue, term.keyword, term.definition, ...extraValues);
   }
+
+  await ops.run(
+    `INSERT INTO ${opts.table} (${cols.join(", ")}) VALUES ${valuesClauses.join(", ")}`,
+    allParams,
+  );
 }
