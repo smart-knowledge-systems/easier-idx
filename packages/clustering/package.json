@@ -1,0 +1,59 @@
+{
+  "name": "@easier/clustering",
+  "version": "0.1.0",
+  "license": "MIT",
+  "author": "Russ T Fugal <russ-fugal@smart-knowledge-systems.com>",
+  "description": "K-means clustering, kNN classification, silhouette scoring, and cluster description for EASIER systems",
+  "keywords": [
+    "clustering",
+    "kmeans",
+    "knn",
+    "silhouette",
+    "classification"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./classify": {
+      "types": "./dist/classify.d.ts",
+      "import": "./dist/classify.js"
+    },
+    "./silhouette": {
+      "types": "./dist/silhouette.d.ts",
+      "import": "./dist/silhouette.js"
+    },
+    "./describe": {
+      "types": "./dist/describe.d.ts",
+      "import": "./dist/describe.js"
+    }
+  },
+  "files": [
+    "LICENSE",
+    "dist/",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "@easier/core": ">=0.1.0"
+  },
+  "peerDependenciesMeta": {
+    "@easier/core": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@easier/core": "workspace:*",
+    "@types/bun": "^1.3.10",
+    "typescript": "^5.7.0"
+  },
+  "scripts": {
+    "build": "bun run ./scripts/build.ts",
+    "typecheck": "bunx tsc --noEmit",
+    "check": "bun run typecheck && bun run build",
+    "test": "bun run build && bun test"
+  }
+}
