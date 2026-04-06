@@ -1,0 +1,23 @@
+{
+  "name": "@easier/description",
+  "version": "0.1.0",
+  "license": "MIT",
+  "author": "Russ T Fugal <russ-fugal@smart-knowledge-systems.com>",
+  "description": "LLM-agnostic description generation and caching for EASIER systems",
+  "keywords": ["description", "summary", "generation", "cache"],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" }
+  },
+  "files": ["LICENSE", "dist/", "README.md"],
+  "dependencies": { "@easier/core": "workspace:*" },
+  "devDependencies": { "@types/bun": "^1.3.10", "typescript": "^5.7.0" },
+  "scripts": {
+    "build": "bun run ./scripts/build.ts",
+    "typecheck": "bunx tsc --noEmit",
+    "check": "bun run typecheck && bun run build",
+    "test": "bun run build && bun test"
+  }
+}
