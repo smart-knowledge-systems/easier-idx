@@ -1,6 +1,6 @@
 {
   "name": "@easier-idx/batch",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "license": "MIT",
   "author": "Russ T Fugal <russ-fugal@smart-knowledge-systems.com>",
   "description": "Anthropic Batch API lifecycle management for EASIER systems",
