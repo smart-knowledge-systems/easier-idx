@@ -21,7 +21,9 @@ export async function* iterateResults<T>(
   batchId: string,
   parse: (customId: string, message: unknown) => T,
 ): AsyncGenerator<IterateSuccess<T> | IterateError> {
-  for await (const entry of client.messages.batches.results(batchId)) {
+  // Anthropic SDK v0.71+ returns `results()` as Promise<JSONLDecoder<T>>,
+  // not as an async iterable directly — the Promise must be awaited first.
+  for await (const entry of await client.messages.batches.results(batchId)) {
     const customId = entry.custom_id;
     if (entry.result.type !== "succeeded" || !entry.result.message) {
       yield { customId, error: entry.result };
