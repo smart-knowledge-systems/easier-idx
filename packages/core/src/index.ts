@@ -153,6 +153,10 @@ export {
 } from "./cluster/classify";
 export { silhouetteScore } from "./cluster/silhouette";
 export { sampleRepresentative, extractTopTerms } from "./cluster/describe";
+// Cluster types live in @easier-idx/clustering (which is core's only
+// cluster runtime source). Core re-exports them here so consumers see
+// the full cluster surface without depending on @easier-idx/clustering
+// directly.
 export type {
   Cluster,
   ClusterAssignment,
@@ -164,4 +168,4 @@ export type {
   ClassifyResult,
   ClassifyOptions,
   ClusterProvider,
-} from "./cluster/types";
+} from "@easier-idx/clustering";

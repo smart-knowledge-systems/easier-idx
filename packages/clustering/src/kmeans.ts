@@ -7,7 +7,7 @@ import type {
   ClusterAssignment,
   ClusterResult,
   KMeansOptions,
-} from "@easier-idx/core";
+} from "./types";
 import { cosineDistance, normalizeInPlace } from "./vecmath";
 
 // ── Seeded PRNG (xoshiro128**) ──────────────────────────────────────────
