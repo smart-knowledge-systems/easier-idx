@@ -1,6 +1,6 @@
 {
   "name": "@easier-idx/core",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "license": "MIT",
   "author": "Russ T Fugal <russ-fugal@smart-knowledge-systems.com>",
   "description": "Embedding-Augmented Semantic Index for Efficient Retrieval — search framework with hybrid BM25/vector scoring, pluggable storage, clustering, and eval",
