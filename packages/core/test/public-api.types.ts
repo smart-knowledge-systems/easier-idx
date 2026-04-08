@@ -243,7 +243,7 @@ export async function publicApiCompileSmoke(): Promise<void> {
     writeGlobalConfig<EasierConfig>("easier", { store: "sqlite" }),
     deepMerge({ scoring: { alpha: 1 } }, { scoring: { beta: 2 } }),
     initLogging({ domains: ["embed", "migrate"] }),
-    logEvent({ event: "embed.complete" }),
+    logEvent({ event: "infra.embed.complete" }),
     setCorrelationContext({ repoId: "repo-1" }),
     getSessionId(),
     hashPath("/tmp/example.ts"),

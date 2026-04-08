@@ -201,7 +201,7 @@ async function applyPgMigrations(
         );
       });
       applied.push(m.version);
-      logEvent({ event: "migrate.apply", version: m.version, backend: "pg" });
+      logEvent({ event: "infra.migrate.apply", version: m.version, backend: "pg" });
     } catch (err) {
       return {
         tag: "err",
@@ -250,7 +250,7 @@ async function applySqliteMigrationsAsync(
       runMigration();
       applied.push(m.version);
       logEvent({
-        event: "migrate.apply",
+        event: "infra.migrate.apply",
         version: m.version,
         backend: "sqlite",
       });
