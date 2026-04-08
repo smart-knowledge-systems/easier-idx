@@ -6,3 +6,6 @@ node_modules/
 .env.*
 .eslintcache
 dist/
+# Stale .d.ts artifacts occasionally emitted back into src/ by tsc
+# build runs that include "src/**/*.d.ts"; true sources are .ts files.
+packages/*/src/**/*.d.ts
