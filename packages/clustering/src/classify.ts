@@ -8,7 +8,7 @@ import type {
   ClusterDef,
   LabeledItem,
   VotingStrategy,
-} from "@easier-idx/core";
+} from "./types";
 import { dot, normalizeVec } from "./vecmath";
 
 // ── Built-in voting strategies ──────────────────────────────────────────

@@ -1,6 +1,6 @@
 {
   "name": "@easier-idx/embedding",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "license": "MIT",
   "author": "Russ T Fugal <russ-fugal@smart-knowledge-systems.com>",
   "description": "Pluggable embedding providers and cost tracking for EASIER systems",

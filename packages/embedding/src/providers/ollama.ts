@@ -46,7 +46,7 @@ export class OllamaEmbeddingProvider implements EmbeddingProvider {
         await recordCost("embed", this.name, approxTokens, 0);
 
         logEvent({
-          event: "embed.batch_complete",
+          event: "infra.embed.batch_complete",
           provider: this.name,
           text_count: texts.length,
         });
@@ -56,7 +56,7 @@ export class OllamaEmbeddingProvider implements EmbeddingProvider {
       {
         onRetry: (attempt, delayMs, err) => {
           logEvent({
-            event: "embed.retry",
+            event: "infra.embed.retry",
             provider: this.name,
             attempt,
             delay_ms: delayMs,

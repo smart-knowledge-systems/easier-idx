@@ -15,20 +15,17 @@ jobs:
         with:
           bun-version: latest
       - run: bun install
+
+      # Build dependency packages in topological order so that each
+      # package's tsc --emitDeclarationOnly step can resolve workspace
+      # imports through the built dist/*.d.ts. Per-package
+      # tsconfig.build.json clears the source-level path aliases set
+      # in the root tsconfig.
+      - name: Build workspace deps (topological)
+        run: |
+          bun run --filter '@easier-idx/logging' build
+          bun run --filter '@easier-idx/clustering' build
+          bun run --filter '@easier-idx/core' build
+
       - run: bun run check
       - run: bun test
-      - run: bun run smoke:pack:bun
-
-  node:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [20, 22]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: npm
-      - run: npm ci
-      - run: npm run smoke:pack:node

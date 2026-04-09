@@ -242,13 +242,13 @@ export async function publicApiCompileSmoke(): Promise<void> {
     getGlobalConfigPath("easier"),
     writeGlobalConfig<EasierConfig>("easier", { store: "sqlite" }),
     deepMerge({ scoring: { alpha: 1 } }, { scoring: { beta: 2 } }),
-    initLogging({ domains: ["embed", "migrate"] }),
-    logEvent({ event: "embed.complete" }),
+    initLogging({ domains: ["infra"] }),
+    logEvent({ event: "infra.embed.complete" }),
     setCorrelationContext({ repoId: "repo-1" }),
     getSessionId(),
     hashPath("/tmp/example.ts"),
-    withTimingSync("embed.complete", { count: 1 }, () => 1),
-    withTimingAsync("embed.complete", { count: 1 }, async () => 1),
+    withTimingSync("infra.embed.complete", { count: 1 }, () => 1),
+    withTimingAsync("infra.embed.complete", { count: 1 }, async () => 1),
   ];
 
   void exportedValues;

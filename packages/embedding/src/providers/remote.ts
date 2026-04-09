@@ -60,7 +60,7 @@ export class RemoteEmbeddingProvider implements EmbeddingProvider {
         const data = (await response.json()) as RemoteEmbedResponse;
 
         logEvent({
-          event: "embed.batch_complete",
+          event: "infra.embed.batch_complete",
           provider: this.name,
           text_count: texts.length,
         });
@@ -70,7 +70,7 @@ export class RemoteEmbeddingProvider implements EmbeddingProvider {
       {
         onRetry: (attempt, delayMs, err) => {
           logEvent({
-            event: "embed.retry",
+            event: "infra.embed.retry",
             provider: this.name,
             attempt,
             delay_ms: delayMs,

@@ -10,10 +10,31 @@ export interface RetryOpts {
   readonly maxRetries?: number;
   /** Base delay in milliseconds, doubled each retry (default: 1000). */
   readonly baseDelayMs?: number;
+  /** Upper bound on per-attempt delay, applied after jitter (default: unbounded). */
+  readonly maxDelayMs?: number;
+  /**
+   * Jitter factor in [0, 1). The computed delay is multiplied by
+   * `1 + (Math.random() - 0.5) * 2 * jitterFactor`, i.e. ±jitterFactor
+   * randomization. Default: 0 (no jitter).
+   */
+  readonly jitterFactor?: number;
   /** Predicate to determine if an error is transient (default: 429 + TypeError). */
   readonly isRetryable?: (err: unknown) => boolean;
+  /**
+   * Optional hook consulted before computing backoff. If it returns a finite
+   * number of milliseconds (e.g. parsed from a Retry-After header), that value
+   * is used instead of the exponential backoff for this attempt. The jitter
+   * and maxDelayMs cap still apply to the returned value.
+   */
+  readonly retryAfterMs?: (err: unknown) => number | null;
   /** Callback fired before each retry sleep. */
   readonly onRetry?: (attempt: number, delayMs: number, err: unknown) => void;
+  /**
+   * Name of the structured log event emitted on each retry. Pass `null` to
+   * suppress the built-in event entirely — useful when the caller's `onRetry`
+   * emits a domain-specific event instead. Default: `"retry"`.
+   */
+  readonly eventName?: string | null;
 }
 
 /** Default transient error check: HTTP 429 or network TypeError. */
@@ -43,7 +64,10 @@ export async function retryWithBackoff<T>(
 ): Promise<T> {
   const maxRetries = opts?.maxRetries ?? 3;
   const baseDelayMs = opts?.baseDelayMs ?? 1000;
+  const maxDelayMs = opts?.maxDelayMs ?? Number.POSITIVE_INFINITY;
+  const jitterFactor = opts?.jitterFactor ?? 0;
   const isRetryable = opts?.isRetryable ?? defaultIsRetryable;
+  const eventName = opts?.eventName === undefined ? "retry" : opts.eventName;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
@@ -54,14 +78,30 @@ export async function retryWithBackoff<T>(
         throw err;
       }
 
-      const delayMs = baseDelayMs * Math.pow(2, attempt);
+      // Start from either a caller-provided retry-after hint or exponential backoff.
+      const hinted = opts?.retryAfterMs?.(err);
+      let delayMs =
+        hinted != null && Number.isFinite(hinted)
+          ? hinted
+          : baseDelayMs * Math.pow(2, attempt);
+
+      // Apply jitter (±jitterFactor) if configured.
+      if (jitterFactor > 0) {
+        delayMs *= 1 + (Math.random() - 0.5) * 2 * jitterFactor;
+      }
+
+      // Cap.
+      if (delayMs > maxDelayMs) delayMs = maxDelayMs;
+
       opts?.onRetry?.(attempt + 1, delayMs, err);
-      logEvent({
-        event: "retry",
-        attempt: attempt + 1,
-        delay_ms: delayMs,
-        "error.message": err instanceof Error ? err.message : String(err),
-      });
+      if (eventName !== null) {
+        logEvent({
+          event: eventName,
+          attempt: attempt + 1,
+          delay_ms: delayMs,
+          "error.message": err instanceof Error ? err.message : String(err),
+        });
+      }
       await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
   }

@@ -20,7 +20,7 @@ export async function embed(
   const input = (Array.isArray(texts) ? texts : [texts]).map(sanitize);
   const result = await provider.embed(input);
   logEvent({
-    event: "embed.complete",
+    event: "infra.embed.complete",
     provider: provider.name,
     text_count: input.length,
   });

@@ -6,7 +6,7 @@ import {
   voteDeepest,
   voteMostSpecific,
 } from "../src/classify";
-import type { ClusterDef, LabeledItem } from "@easier-idx/core";
+import type { ClusterDef, LabeledItem } from "../src/types";
 
 // ── Test data ───────────────────────────────────────────────────────────
 

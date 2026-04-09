@@ -89,6 +89,102 @@ describe("retryWithBackoff", () => {
     expect(retries).toEqual([1]);
   });
 
+  test("maxDelayMs caps delay after jitter", async () => {
+    const delays: number[] = [];
+    let calls = 0;
+    await retryWithBackoff(
+      async () => {
+        calls++;
+        if (calls < 4) throw new TypeError("x");
+        return 1;
+      },
+      {
+        baseDelayMs: 1000,
+        maxDelayMs: 5,
+        jitterFactor: 0.25,
+        onRetry: (_a, d) => delays.push(d),
+      },
+    );
+    // All delays must be capped at 5ms regardless of exponential growth.
+    for (const d of delays) expect(d).toBeLessThanOrEqual(5);
+  });
+
+  test("jitterFactor bounds delay within ±factor", async () => {
+    const delays: number[] = [];
+    let calls = 0;
+    await retryWithBackoff(
+      async () => {
+        calls++;
+        if (calls < 2) throw new TypeError("x");
+        return 1;
+      },
+      {
+        baseDelayMs: 100,
+        jitterFactor: 0.5,
+        onRetry: (_a, d) => delays.push(d),
+      },
+    );
+    // base 100ms ± 50% → [50, 150]
+    expect(delays[0]).toBeGreaterThanOrEqual(50);
+    expect(delays[0]).toBeLessThanOrEqual(150);
+  });
+
+  test("retryAfterMs hook wins over exponential backoff", async () => {
+    const delays: number[] = [];
+    let calls = 0;
+    await retryWithBackoff(
+      async () => {
+        calls++;
+        if (calls < 2) throw new TypeError("x");
+        return 1;
+      },
+      {
+        baseDelayMs: 10_000,
+        retryAfterMs: () => 7,
+        onRetry: (_a, d) => delays.push(d),
+      },
+    );
+    expect(delays[0]).toBe(7);
+  });
+
+  test("retryAfterMs returning null falls back to exponential", async () => {
+    const delays: number[] = [];
+    let calls = 0;
+    await retryWithBackoff(
+      async () => {
+        calls++;
+        if (calls < 2) throw new TypeError("x");
+        return 1;
+      },
+      {
+        baseDelayMs: 3,
+        retryAfterMs: () => null,
+        onRetry: (_a, d) => delays.push(d),
+      },
+    );
+    expect(delays[0]).toBe(3);
+  });
+
+  test("eventName: null suppresses built-in log event", async () => {
+    // Smoke test — we don't assert on logEvent output but verify no throw
+    // and that onRetry still fires.
+    const retries: number[] = [];
+    let calls = 0;
+    await retryWithBackoff(
+      async () => {
+        calls++;
+        if (calls < 2) throw new TypeError("x");
+        return 1;
+      },
+      {
+        baseDelayMs: 1,
+        eventName: null,
+        onRetry: (a) => retries.push(a),
+      },
+    );
+    expect(retries).toEqual([1]);
+  });
+
   test("respects custom isRetryable", async () => {
     let calls = 0;
     await expect(
