@@ -147,19 +147,8 @@ export class OpenAIEmbeddingProvider implements EmbeddingProvider {
         return [...left, ...right];
       }
 
-      const errorType =
-        err instanceof APIError && (err as InstanceType<OpenAIAPIErrorClass>).status === 429
-          ? "rate_limit"
-          : err instanceof Error
-            ? err.constructor.name
-            : "unknown";
-      logEvent({
-        event: "infra.embed.failed",
-        provider: this.name,
-        "error.type": errorType,
-        "error.message": err instanceof Error ? err.message : String(err),
-        "error.retriable": false,
-      });
+      // Caller (embed) logs infra.embed.batch_skipped with the error details;
+      // embedSingle surfaces the thrown error to its caller. Avoid double-logging here.
       throw err;
     }
   }
