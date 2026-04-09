@@ -111,8 +111,8 @@
     "README.md"
   ],
   "dependencies": {
-    "@easier-idx/clustering": "workspace:*",
-    "@easier-idx/logging": "workspace:*",
+    "@easier-idx/clustering": "workspace:^",
+    "@easier-idx/logging": "workspace:^",
     "sqlite-vec": "^0.1.7"
   },
   "optionalDependencies": {
