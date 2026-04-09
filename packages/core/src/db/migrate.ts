@@ -201,7 +201,11 @@ async function applyPgMigrations(
         );
       });
       applied.push(m.version);
-      logEvent({ event: "infra.migrate.apply", version: m.version, backend: "pg" });
+      logEvent({
+        event: "infra.migrate.apply",
+        version: m.version,
+        backend: "pg",
+      });
     } catch (err) {
       return {
         tag: "err",

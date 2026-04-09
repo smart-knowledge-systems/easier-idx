@@ -31,7 +31,10 @@ function loadOpenAI(): typeof import("openai").default {
   return _OpenAI!;
 }
 
-function isApiErrorStatus(err: unknown, APIError: OpenAIAPIErrorClass): boolean {
+function isApiErrorStatus(
+  err: unknown,
+  APIError: OpenAIAPIErrorClass,
+): boolean {
   return err instanceof APIError;
 }
 
@@ -65,7 +68,12 @@ export class OpenAIEmbeddingProvider implements EmbeddingProvider {
             input: texts,
           });
           if (response.usage?.total_tokens) {
-            await recordCost("embed", this.name, response.usage.total_tokens, 0);
+            await recordCost(
+              "embed",
+              this.name,
+              response.usage.total_tokens,
+              0,
+            );
           }
 
           logEvent({
@@ -90,12 +98,14 @@ export class OpenAIEmbeddingProvider implements EmbeddingProvider {
           eventName: null, // caller emits infra.embed.retry instead
           isRetryable: (err) => {
             if (!isApiErrorStatus(err, APIError)) return false;
-            const status = (err as InstanceType<OpenAIAPIErrorClass>).status ?? 0;
+            const status =
+              (err as InstanceType<OpenAIAPIErrorClass>).status ?? 0;
             return status === 429 || status >= 500;
           },
           retryAfterMs: (err) => {
             if (!isApiErrorStatus(err, APIError)) return null;
-            const headers = (err as InstanceType<OpenAIAPIErrorClass>).headers as
+            const headers = (err as InstanceType<OpenAIAPIErrorClass>)
+              .headers as
               | Record<string, string | null | undefined>
               | { get?: (k: string) => string | null }
               | undefined;
@@ -103,15 +113,21 @@ export class OpenAIEmbeddingProvider implements EmbeddingProvider {
             // openai v4: headers is a Record; v5: Headers-like with .get()
             const hdr =
               typeof (headers as { get?: unknown }).get === "function"
-                ? ((headers as { get: (k: string) => string | null }).get("retry-after") ?? null)
-                : ((headers as Record<string, string | null | undefined>)["retry-after"] ?? null);
+                ? ((headers as { get: (k: string) => string | null }).get(
+                    "retry-after",
+                  ) ?? null)
+                : ((headers as Record<string, string | null | undefined>)[
+                    "retry-after"
+                  ] ?? null);
             if (!hdr) return null;
             const parsed = parseFloat(hdr);
             return Number.isFinite(parsed) ? parsed * 1000 : null;
           },
           onRetry: (attempt, delayMs, err) => {
             const status =
-              err instanceof APIError ? ((err as InstanceType<OpenAIAPIErrorClass>).status ?? 0) : 0;
+              err instanceof APIError
+                ? ((err as InstanceType<OpenAIAPIErrorClass>).status ?? 0)
+                : 0;
             const errorType = status === 429 ? "rate_limit" : "server_error";
             logEvent({
               event: "infra.embed.retry",
@@ -121,7 +137,8 @@ export class OpenAIEmbeddingProvider implements EmbeddingProvider {
               "error.type": errorType,
               "error.message": err instanceof Error ? err.message : String(err),
             });
-            const reason = status === 429 ? "Rate limited" : `Server error ${status}`;
+            const reason =
+              status === 429 ? "Rate limited" : `Server error ${status}`;
             process.stderr.write(
               `  ${reason} — retrying in ${(delayMs / 1000).toFixed(1)}s (attempt ${attempt}/${MAX_RETRIES})\n`,
             );
@@ -165,7 +182,8 @@ export class OpenAIEmbeddingProvider implements EmbeddingProvider {
       const estimatedTokens = Math.ceil(text.length / CHARS_PER_TOKEN);
       if (
         current.length > 0 &&
-        (current.length >= MAX_BATCH_ITEMS || currentTokens + estimatedTokens > MAX_BATCH_TOKENS)
+        (current.length >= MAX_BATCH_ITEMS ||
+          currentTokens + estimatedTokens > MAX_BATCH_TOKENS)
       ) {
         batches.push(current);
         current = [];
