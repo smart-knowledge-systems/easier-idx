@@ -121,8 +121,9 @@ export class OpenAIEmbeddingProvider implements EmbeddingProvider {
               "error.type": errorType,
               "error.message": err instanceof Error ? err.message : String(err),
             });
+            const reason = status === 429 ? "Rate limited" : `Server error ${status}`;
             process.stderr.write(
-              `  Rate limited — retrying in ${(delayMs / 1000).toFixed(1)}s (attempt ${attempt}/${MAX_RETRIES})\n`,
+              `  ${reason} — retrying in ${(delayMs / 1000).toFixed(1)}s (attempt ${attempt}/${MAX_RETRIES})\n`,
             );
           },
         },
