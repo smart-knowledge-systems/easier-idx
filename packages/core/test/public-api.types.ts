@@ -247,8 +247,8 @@ export async function publicApiCompileSmoke(): Promise<void> {
     setCorrelationContext({ repoId: "repo-1" }),
     getSessionId(),
     hashPath("/tmp/example.ts"),
-    withTimingSync("embed.complete", { count: 1 }, () => 1),
-    withTimingAsync("embed.complete", { count: 1 }, async () => 1),
+    withTimingSync("infra.embed.complete", { count: 1 }, () => 1),
+    withTimingAsync("infra.embed.complete", { count: 1 }, async () => 1),
   ];
 
   void exportedValues;
