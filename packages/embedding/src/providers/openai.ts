@@ -208,7 +208,10 @@ export class OpenAIEmbeddingProvider implements EmbeddingProvider {
   }
 
   async embedSingle(text: string): Promise<number[]> {
-    const results = await this.embed([text]);
-    return results[0];
+    // Call embedBatch directly to bypass the graceful per-batch skip in embed().
+    // embedSingle is a point lookup — silently returning [] on failure would
+    // corrupt downstream vector consumers (cosine similarity, k-NN).
+    const [embedding] = await this.embedBatch([text]);
+    return embedding;
   }
 }
