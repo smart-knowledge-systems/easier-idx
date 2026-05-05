@@ -118,7 +118,18 @@ const ops: StoreOps = createSqliteStoreOps(db);
 // Write SQL with pg-style $1 placeholders — auto-converted for SQLite
 await ops.run("INSERT INTO items (name) VALUES ($1)", ["example"]);
 const rows = await ops.query<{ id: number; name: string }>("SELECT * FROM items");
+
+// Atomic multi-statement work — runs on a single reserved connection
+// for pg, and as a BEGIN/COMMIT block for sqlite. Throwing rolls back.
+await ops.transaction(async (tx) => {
+  await tx.run("INSERT INTO parents (id, name) VALUES ($1, $2)", [1, "p"]);
+  await tx.run("INSERT INTO children (parent_id) VALUES ($1)", [1]);
+});
 ```
+
+> Inside `transaction(fn)`, only use the `tx` argument. Calls back to the
+> outer `ops` go through the connection pool and would land on a different
+> connection — postgres.js rejects this with `Only use sql.begin, sql.reserved or max: 1`.
 
 ## Database security — avoiding SQL injection
 
