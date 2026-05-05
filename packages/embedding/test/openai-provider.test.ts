@@ -10,7 +10,11 @@ import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 class FakeAPIError extends Error {
   status: number;
   headers: Record<string, string | null | undefined>;
-  constructor(status: number, message: string, headers: Record<string, string> = {}) {
+  constructor(
+    status: number,
+    message: string,
+    headers: Record<string, string> = {},
+  ) {
     super(message);
     this.status = status;
     this.headers = headers;
@@ -18,13 +22,16 @@ class FakeAPIError extends Error {
 }
 
 interface FakeClientOpts {
-  onCreate: (input: string[]) => Promise<{ data: { index: number; embedding: number[] }[] }>;
+  onCreate: (
+    input: string[],
+  ) => Promise<{ data: { index: number; embedding: number[] }[] }>;
 }
 
 function makeFakeOpenAIModule(clientOpts: FakeClientOpts) {
   const Client = class {
     embeddings = {
-      create: async (args: { input: string[] }) => clientOpts.onCreate(args.input),
+      create: async (args: { input: string[] }) =>
+        clientOpts.onCreate(args.input),
     };
   };
   return {
@@ -93,7 +100,10 @@ describe("OpenAIEmbeddingProvider parity", () => {
       onCreate: async (input) => {
         calls.push(input);
         return {
-          data: input.map((_, i) => ({ index: i, embedding: makeEmbedding(4, i) })),
+          data: input.map((_, i) => ({
+            index: i,
+            embedding: makeEmbedding(4, i),
+          })),
         };
       },
     });
@@ -126,7 +136,10 @@ describe("OpenAIEmbeddingProvider parity", () => {
           throw new FakeAPIError(400, "maximum request size exceeded");
         }
         return {
-          data: input.map((_, i) => ({ index: i, embedding: makeEmbedding(4, i) })),
+          data: input.map((_, i) => ({
+            index: i,
+            embedding: makeEmbedding(4, i),
+          })),
         };
       },
     });
@@ -165,10 +178,15 @@ describe("OpenAIEmbeddingProvider parity", () => {
       onCreate: async (input) => {
         callCount++;
         if (callCount === 1) {
-          throw new FakeAPIError(429, "rate limited", { "retry-after": "0.01" });
+          throw new FakeAPIError(429, "rate limited", {
+            "retry-after": "0.01",
+          });
         }
         return {
-          data: input.map((_, i) => ({ index: i, embedding: makeEmbedding(4, i) })),
+          data: input.map((_, i) => ({
+            index: i,
+            embedding: makeEmbedding(4, i),
+          })),
         };
       },
     });
@@ -195,7 +213,10 @@ describe("OpenAIEmbeddingProvider parity", () => {
         callCount++;
         if (callCount < 3) throw new FakeAPIError(503, "service unavailable");
         return {
-          data: input.map((_, i) => ({ index: i, embedding: makeEmbedding(4, i) })),
+          data: input.map((_, i) => ({
+            index: i,
+            embedding: makeEmbedding(4, i),
+          })),
         };
       },
     });
