@@ -143,7 +143,7 @@ export {
 } from "@easier-idx/logging";
 
 // Cluster
-export { kmeans, kmeansSearch } from "./cluster/kmeans";
+export { kmeans, kmeansSearch, kmeansPacked } from "./cluster/kmeans";
 export {
   classify,
   voteAll,
@@ -151,7 +151,7 @@ export {
   voteDeepest,
   voteMostSpecific,
 } from "./cluster/classify";
-export { silhouetteScore } from "./cluster/silhouette";
+export { silhouetteScore, silhouettePacked } from "./cluster/silhouette";
 export { sampleRepresentative, extractTopTerms } from "./cluster/describe";
 // Cluster types live in @easier-idx/clustering (which is core's only
 // cluster runtime source). Core re-exports them here so consumers see
@@ -161,6 +161,7 @@ export type {
   Cluster,
   ClusterAssignment,
   ClusterResult,
+  PackedClusterResult,
   KMeansOptions,
   ClusterDef,
   LabeledItem,

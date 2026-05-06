@@ -91,10 +91,17 @@ export interface PipelineResult {
   readonly costUsd: number;
 }
 
-/** Store-agnostic database operations — query + run. */
+/** Store-agnostic database operations — query + run + transaction. */
 export interface StoreOps {
   query: <T>(sql: string, params?: unknown[]) => Promise<T[]>;
   run: (sql: string, params?: unknown[]) => Promise<void>;
+  /**
+   * Run `fn` inside a transaction on a single reserved connection. Commits
+   * if `fn` resolves; rolls back if it throws. The `tx` StoreOps passed to
+   * `fn` MUST be used for all queries inside — calls back to the parent
+   * `ops` would land on a different pool connection and break atomicity.
+   */
+  transaction: <T>(fn: (tx: StoreOps) => Promise<T>) => Promise<T>;
 }
 
 /**

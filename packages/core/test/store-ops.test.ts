@@ -107,6 +107,67 @@ describe("createSqliteStoreOps", () => {
     expect(rows).toHaveLength(0);
     db.close();
   });
+
+  test("transaction commits on success", async () => {
+    const db = new Database(":memory:");
+    db.run("CREATE TABLE items (id INTEGER PRIMARY KEY, name TEXT)");
+    const ops = createSqliteStoreOps(db);
+
+    await ops.transaction(async (tx) => {
+      await tx.run("INSERT INTO items (name) VALUES ($1)", ["alpha"]);
+      await tx.run("INSERT INTO items (name) VALUES ($1)", ["beta"]);
+    });
+
+    const rows = db
+      .prepare("SELECT name FROM items ORDER BY id")
+      .all() as Array<{
+      name: string;
+    }>;
+    expect(rows).toEqual([{ name: "alpha" }, { name: "beta" }]);
+    db.close();
+  });
+
+  test("transaction rolls back on throw", async () => {
+    const db = new Database(":memory:");
+    db.run("CREATE TABLE items (id INTEGER PRIMARY KEY, name TEXT)");
+    const ops = createSqliteStoreOps(db);
+
+    await expect(
+      ops.transaction(async (tx) => {
+        await tx.run("INSERT INTO items (name) VALUES ($1)", ["alpha"]);
+        throw new Error("boom");
+      }),
+    ).rejects.toThrow("boom");
+
+    const rows = db.prepare("SELECT name FROM items").all();
+    expect(rows).toHaveLength(0);
+    db.close();
+  });
+
+  test("transaction returns fn's value", async () => {
+    const db = new Database(":memory:");
+    const ops = createSqliteStoreOps(db);
+    const result = await ops.transaction(async () => 42);
+    expect(result).toBe(42);
+    db.close();
+  });
+
+  test("nested transaction throws library-level error and rolls back outer", async () => {
+    const db = new Database(":memory:");
+    db.run("CREATE TABLE items (id INTEGER PRIMARY KEY, name TEXT)");
+    const ops = createSqliteStoreOps(db);
+
+    await expect(
+      ops.transaction(async (tx) => {
+        await tx.run("INSERT INTO items (name) VALUES ($1)", ["alpha"]);
+        await tx.transaction(async () => undefined);
+      }),
+    ).rejects.toThrow("nested transactions are not supported");
+
+    const rows = db.prepare("SELECT name FROM items").all();
+    expect(rows).toHaveLength(0);
+    db.close();
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -158,5 +219,70 @@ describe("createNodePgStoreOps", () => {
     const ops = createNodePgStoreOps(mockPool);
     await ops.run("INSERT INTO items (name) VALUES ($1)", ["gamma"]);
     expect(called).toBe(true);
+  });
+
+  test("transaction issues BEGIN/COMMIT on a checked-out client", async () => {
+    const calls: string[] = [];
+    const released: { count: number } = { count: 0 };
+    const mockClient = {
+      query: async (sql: string) => {
+        calls.push(sql);
+        return { rows: [] };
+      },
+      release: () => {
+        released.count++;
+      },
+    };
+    const mockPool = {
+      query: async () => ({ rows: [] }),
+      connect: async () => mockClient,
+    };
+
+    const ops = createNodePgStoreOps(mockPool);
+    await ops.transaction(async (tx) => {
+      await tx.run("INSERT INTO items VALUES (1)");
+    });
+
+    expect(calls).toEqual(["BEGIN", "INSERT INTO items VALUES (1)", "COMMIT"]);
+    expect(released.count).toBe(1);
+  });
+
+  test("transaction rolls back on throw and releases client", async () => {
+    const calls: string[] = [];
+    const released: { count: number } = { count: 0 };
+    const mockClient = {
+      query: async (sql: string) => {
+        calls.push(sql);
+        return { rows: [] };
+      },
+      release: () => {
+        released.count++;
+      },
+    };
+    const mockPool = {
+      query: async () => ({ rows: [] }),
+      connect: async () => mockClient,
+    };
+
+    const ops = createNodePgStoreOps(mockPool);
+    await expect(
+      ops.transaction(async () => {
+        throw new Error("boom");
+      }),
+    ).rejects.toThrow("boom");
+
+    expect(calls).toEqual(["BEGIN", "ROLLBACK"]);
+    expect(released.count).toBe(1);
+  });
+
+  test("transaction throws when pool lacks connect()", async () => {
+    const mockPool = {
+      query: async () => ({ rows: [] }),
+    };
+
+    const ops = createNodePgStoreOps(mockPool);
+    await expect(ops.transaction(async () => undefined)).rejects.toThrow(
+      "does not expose connect()",
+    );
   });
 });

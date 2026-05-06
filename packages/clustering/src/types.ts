@@ -28,6 +28,28 @@ export interface ClusterResult {
   readonly converged: boolean;
 }
 
+/**
+ * Buffer-friendly result for packed-buffer k-means.
+ *
+ * Counterpart to `ClusterResult`: assignments are row indices into the input
+ * buffer (no string IDs), centroids are packed `k × dim` Float32, and
+ * silhouette is omitted — callers compute it separately on the runs they
+ * care about, typically only the winner of a sweep.
+ */
+export interface PackedClusterResult {
+  readonly k: number;
+  /** Length `n`; cluster index in `[0, k)` for each row. */
+  readonly assignments: Int32Array;
+  /** Row-major `k × dim`, each row L2-normalized. */
+  readonly centroids: Float32Array;
+  /** Length `k`; member count per cluster. */
+  readonly counts: Int32Array;
+  /** Sum of cosine distances from each point to its assigned centroid. */
+  readonly inertia: number;
+  readonly iterations: number;
+  readonly converged: boolean;
+}
+
 /** Options for k-means. All optional — progressive disclosure. */
 export interface KMeansOptions {
   /** Maximum Lloyd iterations before stopping. Default 100. */
