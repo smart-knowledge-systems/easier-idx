@@ -7,23 +7,10 @@
 // ---------------------------------------------------------------------------
 
 import { createRng } from "./prng";
+import { dotPacked } from "./vecmath";
 import type { KMeansOptions, PackedClusterResult } from "./types";
 
 // ── Vector math on the packed buffer ────────────────────────────────────
-
-// Dot product of buf[aOff..aOff+dim] and cBuf[bOff..bOff+dim]. Both inputs
-// are assumed L2-normalized, so cosine distance = 1 - dot.
-function dotPacked(
-  a: Float32Array,
-  aOff: number,
-  b: Float32Array,
-  bOff: number,
-  dim: number,
-): number {
-  let s = 0;
-  for (let d = 0; d < dim; d++) s += a[aOff + d] * b[bOff + d];
-  return s;
-}
 
 function normalizePacked(buf: Float32Array, off: number, dim: number): void {
   let n = 0;

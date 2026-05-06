@@ -24,3 +24,19 @@ export function normalizeVec(v: number[]): Float64Array {
 export function cosineDistance(a: Float64Array, b: Float64Array): number {
   return 1 - dot(a, b);
 }
+
+/**
+ * Dot product over offset windows of two packed Float32 buffers. Both inputs
+ * are assumed L2-normalized, so cosine distance = 1 - dotPacked(...).
+ */
+export function dotPacked(
+  a: Float32Array,
+  aOff: number,
+  b: Float32Array,
+  bOff: number,
+  dim: number,
+): number {
+  let s = 0;
+  for (let d = 0; d < dim; d++) s += a[aOff + d] * b[bOff + d];
+  return s;
+}

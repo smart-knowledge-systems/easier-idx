@@ -6,23 +6,13 @@
 // repack into boxed objects just to score a run.
 // ---------------------------------------------------------------------------
 
+import { dotPacked } from "./vecmath";
+
 interface SilhouettePackedOptions {
   /** Cap on sampled points used to estimate the score. Default 2000. */
   readonly sampleSize?: number;
   /** Cap on intra/inter-cluster comparisons per sampled point. Default 200. */
   readonly maxIntraCluster?: number;
-}
-
-function dotPacked(
-  a: Float32Array,
-  aOff: number,
-  b: Float32Array,
-  bOff: number,
-  dim: number,
-): number {
-  let s = 0;
-  for (let d = 0; d < dim; d++) s += a[aOff + d] * b[bOff + d];
-  return s;
 }
 
 /**
