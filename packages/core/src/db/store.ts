@@ -50,7 +50,16 @@ export function createSqliteStoreOps(db: SqliteDatabase): StoreOps {
     transaction: async <T>(fn: (tx: StoreOps) => Promise<T>) => {
       db.exec("BEGIN");
       try {
-        const result = await fn(ops);
+        const txOps: StoreOps = {
+          query: ops.query,
+          run: ops.run,
+          transaction: async () => {
+            throw new Error(
+              "StoreOps.transaction: nested transactions are not supported.",
+            );
+          },
+        };
+        const result = await fn(txOps);
         db.exec("COMMIT");
         return result;
       } catch (err) {

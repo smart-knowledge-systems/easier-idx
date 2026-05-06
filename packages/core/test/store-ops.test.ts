@@ -151,6 +151,23 @@ describe("createSqliteStoreOps", () => {
     expect(result).toBe(42);
     db.close();
   });
+
+  test("nested transaction throws library-level error and rolls back outer", async () => {
+    const db = new Database(":memory:");
+    db.run("CREATE TABLE items (id INTEGER PRIMARY KEY, name TEXT)");
+    const ops = createSqliteStoreOps(db);
+
+    await expect(
+      ops.transaction(async (tx) => {
+        await tx.run("INSERT INTO items (name) VALUES ($1)", ["alpha"]);
+        await tx.transaction(async () => undefined);
+      }),
+    ).rejects.toThrow("nested transactions are not supported");
+
+    const rows = db.prepare("SELECT name FROM items").all();
+    expect(rows).toHaveLength(0);
+    db.close();
+  });
 });
 
 // ---------------------------------------------------------------------------
