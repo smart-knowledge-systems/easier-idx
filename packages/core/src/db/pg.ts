@@ -3,13 +3,19 @@ import { createRequire } from "node:module";
 const PG_LIST_MARKER = Symbol.for("@easier-idx/core/PgList");
 
 /**
- * Multi-parameter list helper for `IN` clauses.
+ * Multi-parameter list helper for `IN` / `NOT IN` clauses.
  *
  * Created by calling a `PgTx` with a single array argument, e.g.
- * ``pg`WHERE id IN ${pg([1, 2, 3])}` ``. Expands to `($1, $2, $3)` with
+ * ``pg`WHERE id IN ${pg([1, 2, 3])}` ``. Expands to `($1,$2,$3)` with
  * each item bound as a separate parameter, sidestepping driver-level
  * array encoding (notably Bun's `bun:sql` `Array.prototype.toString`
  * behavior that PostgreSQL 18 rejects).
+ *
+ * **Empty lists** expand to `(SELECT NULL WHERE false)` — a true empty
+ * subquery — so both `IN` and `NOT IN` behave correctly:
+ * `id IN (empty)` matches no rows, `id NOT IN (empty)` matches all rows.
+ * Using `(NULL)` would have been wrong: `NOT IN (NULL)` evaluates to
+ * `NULL` and silently excludes every row.
  */
 export interface PgList<T = unknown> {
   readonly [PG_LIST_MARKER]: true;
@@ -47,9 +53,10 @@ export interface PgTx {
     ...values: unknown[]
   ): Promise<T[]>;
   /**
-   * List helper for `IN` clauses — e.g. pg\`WHERE id IN ${pg([1, 2, 3])}\`
-   * expands to `IN ($1, $2, $3)` with each item as a separate parameter.
-   * An empty array expands to `(NULL)`, which never matches.
+   * List helper for `IN` / `NOT IN` clauses — e.g.
+   * pg\`WHERE id IN ${pg([1, 2, 3])}\` expands to `IN ($1,$2,$3)` with
+   * each item as a separate parameter. An empty array expands to a true
+   * empty subquery, so `IN` matches no rows and `NOT IN` matches all rows.
    */
   <T>(items: readonly T[]): PgList<T>;
 }
@@ -113,7 +120,10 @@ export function buildTaggedQuery(
     const value = values[i];
     if (isPgList(value)) {
       if (value.items.length === 0) {
-        sql += "(NULL)";
+        // True empty subquery — `IN (empty)` matches no rows,
+        // `NOT IN (empty)` matches all rows. `(NULL)` would have been
+        // wrong for NOT IN: `col <> NULL` is `NULL`, not `TRUE`.
+        sql += "(SELECT NULL WHERE false)";
       } else {
         const placeholders: string[] = [];
         for (const item of value.items) {

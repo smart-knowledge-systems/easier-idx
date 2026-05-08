@@ -21,10 +21,21 @@ describe("buildTaggedQuery", () => {
     expect(out.params).toEqual([10, 20, 30]);
   });
 
-  test("empty PgList expands to (NULL)", () => {
+  test("empty PgList expands to a true empty subquery for IN", () => {
     const empty = makePgList<number>([]);
     const out = tag`SELECT * FROM files WHERE id IN ${empty}`;
-    expect(out.sql).toBe("SELECT * FROM files WHERE id IN (NULL)");
+    expect(out.sql).toBe(
+      "SELECT * FROM files WHERE id IN (SELECT NULL WHERE false)",
+    );
+    expect(out.params).toEqual([]);
+  });
+
+  test("empty PgList works correctly with NOT IN (empty subquery, not NULL)", () => {
+    const empty = makePgList<number>([]);
+    const out = tag`SELECT * FROM files WHERE id NOT IN ${empty}`;
+    expect(out.sql).toBe(
+      "SELECT * FROM files WHERE id NOT IN (SELECT NULL WHERE false)",
+    );
     expect(out.params).toEqual([]);
   });
 
