@@ -31,7 +31,7 @@ export type {
   SqliteStatement,
 } from "./db/sqlite";
 export { getPg, pgUnsafe, closePg } from "./db/pg";
-export type { PgClient, PgConfig, PgTx } from "./db/pg";
+export type { PgClient, PgConfig, PgList, PgTx } from "./db/pg";
 export {
   applyMigrations,
   getCurrentSchemaVersion,

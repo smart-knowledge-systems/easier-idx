@@ -1,5 +1,47 @@
 import { createRequire } from "node:module";
 
+const PG_LIST_MARKER = Symbol.for("@easier-idx/core/PgList");
+
+/**
+ * Multi-parameter list helper for `IN` / `NOT IN` clauses.
+ *
+ * Created by calling a `PgTx` with a single array argument, e.g.
+ * ``pg`WHERE id IN ${pg([1, 2, 3])}` ``. Expands to `($1,$2,$3)` with
+ * each item bound as a separate parameter, sidestepping driver-level
+ * array encoding (notably Bun's `bun:sql` `Array.prototype.toString`
+ * behavior that PostgreSQL 18 rejects).
+ *
+ * **Empty lists** expand to `(SELECT NULL WHERE false)` — a true empty
+ * subquery — so both `IN` and `NOT IN` behave correctly:
+ * `id IN (empty)` matches no rows, `id NOT IN (empty)` matches all rows.
+ * Using `(NULL)` would have been wrong: `NOT IN (NULL)` evaluates to
+ * `NULL` and silently excludes every row.
+ */
+export interface PgList<T = unknown> {
+  readonly [PG_LIST_MARKER]: true;
+  readonly items: readonly T[];
+}
+
+/** @internal */
+export function makePgList<T>(items: readonly T[]): PgList<T> {
+  return { [PG_LIST_MARKER]: true, items };
+}
+
+/** @internal */
+export function isPgList(value: unknown): value is PgList {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    (value as Record<symbol, unknown>)[PG_LIST_MARKER] === true
+  );
+}
+
+function isTemplateStringsArray(value: unknown): value is TemplateStringsArray {
+  if (!Array.isArray(value)) return false;
+  const candidate = value as unknown as { raw?: unknown };
+  return Array.isArray(candidate.raw);
+}
+
 export interface PgTx {
   unsafe<T = Record<string, unknown>>(
     sql: string,
@@ -10,6 +52,13 @@ export interface PgTx {
     strings: TemplateStringsArray,
     ...values: unknown[]
   ): Promise<T[]>;
+  /**
+   * List helper for `IN` / `NOT IN` clauses — e.g.
+   * pg\`WHERE id IN ${pg([1, 2, 3])}\` expands to `IN ($1,$2,$3)` with
+   * each item as a separate parameter. An empty array expands to a true
+   * empty subquery, so `IN` matches no rows and `NOT IN` matches all rows.
+   */
+  <T>(items: readonly T[]): PgList<T>;
 }
 
 export interface PgClient extends PgTx {
@@ -51,16 +100,45 @@ function isBunRuntime(): boolean {
   return typeof Bun !== "undefined" && typeof Bun.SQL === "function";
 }
 
-/** Build a parameterized SQL string from a tagged template literal. */
-function buildTaggedQuery(
+/**
+ * Build a parameterized SQL string from a tagged template literal.
+ *
+ * `PgList` values are expanded inline as `($k, $k+1, ...)` with their items
+ * flattened into the parameter list. All other values become a single `$N`
+ * binding. Placeholder numbering tracks the actual parameter list, so list
+ * expansion does not desync downstream `$N` references.
+ *
+ * @internal Exported for tests; not part of the public API.
+ */
+export function buildTaggedQuery(
   strings: TemplateStringsArray,
   values: unknown[],
 ): { sql: string; params: unknown[] } {
   let sql = strings[0];
+  const params: unknown[] = [];
   for (let i = 0; i < values.length; i++) {
-    sql += `$${i + 1}${strings[i + 1]}`;
+    const value = values[i];
+    if (isPgList(value)) {
+      if (value.items.length === 0) {
+        // True empty subquery — `IN (empty)` matches no rows,
+        // `NOT IN (empty)` matches all rows. `(NULL)` would have been
+        // wrong for NOT IN: `col <> NULL` is `NULL`, not `TRUE`.
+        sql += "(SELECT NULL WHERE false)";
+      } else {
+        const placeholders: string[] = [];
+        for (const item of value.items) {
+          params.push(item);
+          placeholders.push(`$${params.length}`);
+        }
+        sql += `(${placeholders.join(",")})`;
+      }
+    } else {
+      params.push(value);
+      sql += `$${params.length}`;
+    }
+    sql += strings[i + 1];
   }
-  return { sql, params: values };
+  return { sql, params };
 }
 
 function createBunPgClient(config: PgConfig, maxConnections: number): PgClient {
@@ -74,36 +152,58 @@ function createBunPgClient(config: PgConfig, maxConnections: number): PgClient {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const makeTx = (bunTx: { unsafe: (...args: any[]) => any }): PgTx => {
-    const tx = async <T>(
-      sqlOrStrings: string | TemplateStringsArray,
+    const tx = (
+      sqlOrStringsOrItems: string | TemplateStringsArray | readonly unknown[],
       ...paramsOrValues: unknown[]
-    ): Promise<T[]> => {
-      if (typeof sqlOrStrings === "string") {
-        return (await bunTx.unsafe(
-          sqlOrStrings,
+    ): Promise<unknown[]> | PgList => {
+      if (typeof sqlOrStringsOrItems === "string") {
+        return bunTx.unsafe(
+          sqlOrStringsOrItems,
           paramsOrValues[0] as never[],
-        )) as T[];
+        ) as Promise<unknown[]>;
       }
-      const { sql, params } = buildTaggedQuery(sqlOrStrings, paramsOrValues);
-      return (await bunTx.unsafe(sql, params as never[])) as T[];
+      if (
+        paramsOrValues.length === 0 &&
+        Array.isArray(sqlOrStringsOrItems) &&
+        !isTemplateStringsArray(sqlOrStringsOrItems)
+      ) {
+        return makePgList(sqlOrStringsOrItems);
+      }
+      const { sql, params } = buildTaggedQuery(
+        sqlOrStringsOrItems as TemplateStringsArray,
+        paramsOrValues,
+      );
+      return bunTx.unsafe(sql, params as never[]) as Promise<unknown[]>;
     };
-    tx.unsafe = async <T>(sql: string, params?: unknown[]) =>
-      (await bunTx.unsafe(sql, params as never[])) as T[];
-    return tx as PgTx;
+    (tx as unknown as { unsafe: PgTx["unsafe"] }).unsafe = async <T>(
+      sql: string,
+      params?: unknown[],
+    ) => (await bunTx.unsafe(sql, params as never[])) as T[];
+    return tx as unknown as PgTx;
   };
 
-  const client = async <T>(
-    sqlOrStrings: string | TemplateStringsArray,
+  const client = (
+    sqlOrStringsOrItems: string | TemplateStringsArray | readonly unknown[],
     ...paramsOrValues: unknown[]
-  ): Promise<T[]> => {
-    if (typeof sqlOrStrings === "string") {
-      return (await pg.unsafe(
-        sqlOrStrings,
+  ): Promise<unknown[]> | PgList => {
+    if (typeof sqlOrStringsOrItems === "string") {
+      return pg.unsafe(
+        sqlOrStringsOrItems,
         paramsOrValues[0] as never[],
-      )) as T[];
+      ) as Promise<unknown[]>;
     }
-    const { sql, params } = buildTaggedQuery(sqlOrStrings, paramsOrValues);
-    return (await pg.unsafe(sql, params as never[])) as T[];
+    if (
+      paramsOrValues.length === 0 &&
+      Array.isArray(sqlOrStringsOrItems) &&
+      !isTemplateStringsArray(sqlOrStringsOrItems)
+    ) {
+      return makePgList(sqlOrStringsOrItems);
+    }
+    const { sql, params } = buildTaggedQuery(
+      sqlOrStringsOrItems as TemplateStringsArray,
+      paramsOrValues,
+    );
+    return pg.unsafe(sql, params as never[]) as Promise<unknown[]>;
   };
   client.unsafe = async <T>(sql: string, params?: unknown[]) =>
     (await pg.unsafe(sql, params as never[])) as T[];
@@ -145,26 +245,36 @@ function loadNodePgPool(): new (config: {
 }
 
 function makeNodeTx(queryFn: NodePgPoolClient["query"]): PgTx {
-  const tx = async <T>(
-    sqlOrStrings: string | TemplateStringsArray,
+  const tx = (
+    sqlOrStringsOrItems: string | TemplateStringsArray | readonly unknown[],
     ...paramsOrValues: unknown[]
-  ): Promise<T[]> => {
-    if (typeof sqlOrStrings === "string") {
-      const result = await queryFn<T>(
-        sqlOrStrings,
-        paramsOrValues[0] as unknown[],
+  ): Promise<unknown[]> | PgList => {
+    if (typeof sqlOrStringsOrItems === "string") {
+      return queryFn(sqlOrStringsOrItems, paramsOrValues[0] as unknown[]).then(
+        (r) => r.rows,
       );
-      return result.rows;
     }
-    const { sql, params } = buildTaggedQuery(sqlOrStrings, paramsOrValues);
+    if (
+      paramsOrValues.length === 0 &&
+      Array.isArray(sqlOrStringsOrItems) &&
+      !isTemplateStringsArray(sqlOrStringsOrItems)
+    ) {
+      return makePgList(sqlOrStringsOrItems);
+    }
+    const { sql, params } = buildTaggedQuery(
+      sqlOrStringsOrItems as TemplateStringsArray,
+      paramsOrValues,
+    );
+    return queryFn(sql, params).then((r) => r.rows);
+  };
+  (tx as unknown as { unsafe: PgTx["unsafe"] }).unsafe = async <T>(
+    sql: string,
+    params?: unknown[],
+  ) => {
     const result = await queryFn<T>(sql, params);
     return result.rows;
   };
-  tx.unsafe = async <T>(sql: string, params?: unknown[]) => {
-    const result = await queryFn<T>(sql, params);
-    return result.rows;
-  };
-  return tx as PgTx;
+  return tx as unknown as PgTx;
 }
 
 function createNodePgClient(
@@ -180,20 +290,27 @@ function createNodePgClient(
     max: maxConnections,
   });
 
-  const client = async <T>(
-    sqlOrStrings: string | TemplateStringsArray,
+  const client = (
+    sqlOrStringsOrItems: string | TemplateStringsArray | readonly unknown[],
     ...paramsOrValues: unknown[]
-  ): Promise<T[]> => {
-    if (typeof sqlOrStrings === "string") {
-      const result = await pool.query<T>(
-        sqlOrStrings,
-        paramsOrValues[0] as unknown[],
-      );
-      return result.rows;
+  ): Promise<unknown[]> | PgList => {
+    if (typeof sqlOrStringsOrItems === "string") {
+      return pool
+        .query(sqlOrStringsOrItems, paramsOrValues[0] as unknown[])
+        .then((r) => r.rows);
     }
-    const { sql, params } = buildTaggedQuery(sqlOrStrings, paramsOrValues);
-    const result = await pool.query<T>(sql, params);
-    return result.rows;
+    if (
+      paramsOrValues.length === 0 &&
+      Array.isArray(sqlOrStringsOrItems) &&
+      !isTemplateStringsArray(sqlOrStringsOrItems)
+    ) {
+      return makePgList(sqlOrStringsOrItems);
+    }
+    const { sql, params } = buildTaggedQuery(
+      sqlOrStringsOrItems as TemplateStringsArray,
+      paramsOrValues,
+    );
+    return pool.query(sql, params).then((r) => r.rows);
   };
   client.unsafe = async <T>(sql: string, params?: unknown[]) => {
     const result = await pool.query<T>(sql, params);
