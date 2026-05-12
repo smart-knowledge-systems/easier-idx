@@ -2,6 +2,39 @@
 // Seeded PRNG (xoshiro128**) — shared between kmeans variants
 // ---------------------------------------------------------------------------
 
+const MIX_K = 0x9e3779b97f4a7c15n;
+const M1 = 0xbf58476d1ce4e5b9n;
+const M2 = 0x94d049bb133111ebn;
+const MASK64 = 0xffffffffffffffffn;
+
+function splitmix(x: bigint): bigint {
+  let v = x & MASK64;
+  v = ((v ^ (v >> 30n)) * M1) & MASK64;
+  v = ((v ^ (v >> 27n)) * M2) & MASK64;
+  return (v ^ (v >> 31n)) & MASK64;
+}
+
+/**
+ * SplitMix64 finalizer (Steele/Lea/Flood 2014) over (master, k, run).
+ * Bit-identical to `mix_seed` in `metal/paradigmap-projector/src/kmeans.rs`.
+ */
+export function mixSeed64(master: bigint, k: bigint, run: bigint): bigint {
+  const inner = splitmix((master ^ ((k * MIX_K) & MASK64)) & MASK64);
+  return splitmix((inner ^ run) & MASK64);
+}
+
+/**
+ * Derive a deterministic 32-bit seed for `createRng` from (master, k, run).
+ * Internally computes the full 64-bit SplitMix64 mix and folds high/low
+ * halves so all 64 bits of entropy influence the result.
+ */
+export function mixSeed(master: number, k: number, run: number): number {
+  const mixed = mixSeed64(BigInt(master), BigInt(k), BigInt(run));
+  const low = Number(mixed & 0xffffffffn);
+  const high = Number((mixed >> 32n) & 0xffffffffn);
+  return (low ^ high) >>> 0;
+}
+
 /**
  * Create a deterministic [0, 1) random number generator from an integer seed.
  *

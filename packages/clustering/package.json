@@ -1,6 +1,6 @@
 {
   "name": "@easier-idx/clustering",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "license": "MIT",
   "author": "Russ T Fugal <russ-fugal@smart-knowledge-systems.com>",
   "description": "K-means clustering, kNN classification, silhouette scoring, and cluster description for EASIER systems",

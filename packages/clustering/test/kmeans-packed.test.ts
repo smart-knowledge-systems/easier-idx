@@ -115,27 +115,31 @@ describe("kmeansPacked", () => {
     expect(Array.from(a.assignments)).toEqual(Array.from(b.assignments));
   });
 
-  test("seed schedule reproduces internal runs (seed + runIndex)", () => {
-    // A multi-run call's inertia must equal the best of single-run calls
-    // each using { seed: base + r, runs: 1 }. This is the contract that
-    // lets workers fan out individual runs.
+  test("multi-run dominates single-run inertia (best-of-N contract)", () => {
+    // Under the (seed, k, run) → mixSeed schedule, single-run callers
+    // can no longer fan out by passing `seed + r`. Instead the contract
+    // we expose is: multi-run inertia is never worse than any single run
+    // started from the same base seed.
     const baseSeed = 13;
     const RUNS = 4;
     const multi = kmeansPacked(BUF, N, DIM, 3, {
       seed: baseSeed,
       runs: RUNS,
     });
+    const single = kmeansPacked(BUF, N, DIM, 3, {
+      seed: baseSeed,
+      runs: 1,
+    });
+    expect(multi.inertia).toBeLessThanOrEqual(single.inertia + 1e-9);
+  });
 
-    let bestInertia = Infinity;
-    for (let r = 0; r < RUNS; r++) {
-      const single = kmeansPacked(BUF, N, DIM, 3, {
-        seed: baseSeed + r,
-        runs: 1,
-      });
-      if (single.inertia < bestInertia) bestInertia = single.inertia;
-    }
-
-    expect(multi.inertia).toBe(bestInertia);
+  // Regression guard: pinned partition at seed=42, k=2 on the 90-point
+  // synthetic corpus. Same baseline as `kmeans.test.ts`.
+  test("snapshot: seed=42 k=2 partition is stable", () => {
+    const r = kmeansPacked(BUF, N, DIM, 2, { seed: 42, runs: 5 });
+    const sizes = Array.from(r.counts).sort((a, b) => a - b);
+    expect(sizes).toEqual([30, 60]);
+    expect(r.converged).toBe(true);
   });
 
   test("multiple runs picks best inertia (>= single-run quality)", () => {

@@ -8,7 +8,7 @@ import type {
   ClusterResult,
   KMeansOptions,
 } from "./types";
-import { createRng } from "./prng";
+import { createRng, mixSeed } from "./prng";
 import { cosineDistance, normalizeInPlace } from "./vecmath";
 
 // ── K-means++ initialization ────────────────────────────────────────────
@@ -192,7 +192,7 @@ export function kmeans(
   let bestResult: LloydsResult | null = null;
 
   for (let run = 0; run < runs; run++) {
-    const runSeed = seed != null ? seed + run : Date.now() + run;
+    const runSeed = seed != null ? mixSeed(seed, k, run) : Date.now() + run;
     const rng = createRng(runSeed);
     const initCentroids = kmeansppInit(vecs, k, rng);
     const result = lloyds(vecs, initCentroids, maxIterations, onProgress);
