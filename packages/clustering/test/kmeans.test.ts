@@ -189,6 +189,16 @@ describe("mixSeed", () => {
     for (let r = 0; r < 8; r++) seeds.add(mixSeed(0, 2, r));
     expect(seeds.size).toBe(8);
   });
+
+  // BigInt(3.14) throws RangeError. Truncating toward zero matches the old
+  // `createRng` `>>> 0` coercion and keeps mixSeed safe for float / NaN inputs.
+  test("non-integer inputs are truncated, not thrown", () => {
+    expect(() => mixSeed(3.14, 2, 0)).not.toThrow();
+    expect(mixSeed(3.14, 2, 0)).toBe(mixSeed(3, 2, 0));
+    expect(mixSeed(-2.9, 2, 0)).toBe(mixSeed(-2, 2, 0));
+    expect(() => mixSeed(Number.NaN, 2, 0)).not.toThrow();
+    expect(mixSeed(Number.NaN, 2, 0)).toBe(mixSeed(0, 2, 0));
+  });
 });
 
 describe("kmeansSearch", () => {

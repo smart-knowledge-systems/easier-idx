@@ -26,10 +26,16 @@ export function mixSeed64(master: bigint, k: bigint, run: bigint): bigint {
 /**
  * Derive a deterministic 32-bit seed for `createRng` from (master, k, run).
  * Internally computes the full 64-bit SplitMix64 mix and folds high/low
- * halves so all 64 bits of entropy influence the result.
+ * halves so all 64 bits of entropy influence the result. Non-integer inputs
+ * are truncated toward zero (matches `createRng`'s historical `>>> 0`
+ * coercion), so floats and `NaN` don't throw `RangeError` from `BigInt`.
  */
 export function mixSeed(master: number, k: number, run: number): number {
-  const mixed = mixSeed64(BigInt(master), BigInt(k), BigInt(run));
+  const mixed = mixSeed64(
+    BigInt(Math.trunc(master) || 0),
+    BigInt(Math.trunc(k) || 0),
+    BigInt(Math.trunc(run) || 0),
+  );
   const low = Number(mixed & 0xffffffffn);
   const high = Number((mixed >> 32n) & 0xffffffffn);
   return (low ^ high) >>> 0;
@@ -39,8 +45,11 @@ export function mixSeed(master: number, k: number, run: number): number {
  * Create a deterministic [0, 1) random number generator from an integer seed.
  *
  * Uses xoshiro128** with a 4-word state derived from the seed. The same seed
- * always produces the same sequence, so callers driving multi-run k-means at
- * a higher level can reproduce internal runs by passing `baseSeed + runIndex`.
+ * always produces the same sequence. For multi-run k-means the orchestrator
+ * derives per-run seeds via `mixSeed(seed, k, run)`; callers that want to
+ * reproduce a specific internal run should call `createRng(mixSeed(seed, k, r))`
+ * rather than rely on any additive `baseSeed + runIndex` schedule (no longer
+ * the internal contract).
  */
 export function createRng(seed: number): () => number {
   let s0 = seed >>> 0 || 1;
