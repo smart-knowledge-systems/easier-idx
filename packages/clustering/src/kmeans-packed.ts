@@ -6,7 +6,7 @@
 // pressure than the boxed `Float64Array[]` path in `./kmeans.ts`.
 // ---------------------------------------------------------------------------
 
-import { createRng } from "./prng";
+import { createRng, mixSeed } from "./prng";
 import { dotPacked } from "./vecmath";
 import type { KMeansOptions, PackedClusterResult } from "./types";
 
@@ -167,11 +167,11 @@ function lloydsPacked(
  * and let multiple workers read the same data without copies.
  *
  * Determinism: identical inputs and `seed` produce identical outputs. The
- * seed schedule across `runs` matches `kmeans()` (`seed + runIndex`), so
- * higher-level orchestrators can fan out one run per worker as
- * `kmeansPacked(buf, n, dim, k, { runs: 1, seed: baseSeed + r, ... })` and
- * reproduce the r-th internal run bit-exactly. Bit-exactness vs. the boxed
- * `kmeans()` is NOT promised — Float32 rounding diverges from Float64.
+ * per-run seed schedule is `mixSeed(seed, k, runIndex)` (SplitMix64 over the
+ * (seed, k, run) tuple), so adjacent runs are statistically independent and
+ * agreement with the Rust `paradigmap-projector` backend is preserved.
+ * Bit-exactness vs. the boxed `kmeans()` is NOT promised — Float32 rounding
+ * diverges from Float64.
  *
  * Silhouette is omitted by design; pair with `silhouettePacked` on the runs
  * worth scoring (e.g. only the winner of a sweep).
@@ -207,7 +207,7 @@ export function kmeansPacked(
   let best: LloydsPackedResult | null = null;
 
   for (let run = 0; run < runs; run++) {
-    const runSeed = seed != null ? seed + run : Date.now() + run;
+    const runSeed = seed != null ? mixSeed(seed, k, run) : Date.now() + run;
     const rng = createRng(runSeed);
     const initCentroids = kmeansppInitPacked(buf, n, dim, k, rng);
     const result = lloydsPacked(

@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { kmeans, kmeansSearch } from "../src/kmeans";
+import { mixSeed, mixSeed64 } from "../src/prng";
 
 // ── Helpers ─────────────────────────────────────────────────────────────
 
@@ -139,6 +140,64 @@ describe("kmeans", () => {
     expect(result.clusters).toHaveLength(1);
     expect(result.clusters[0].size).toBe(90);
     expect(result.silhouette).toBe(0);
+  });
+
+  // Regression guard: at (seed=42, k=2, runs=5) on the 90-point synthetic
+  // corpus, the partition is "cluster A vs (B + C)" because A is more
+  // similar to itself than to either of the other clusters. Sizes 30 + 60.
+  // Pins the algorithmic-equivalence baseline shared with the Rust backend.
+  test("snapshot: seed=42 k=2 partition is stable", () => {
+    const r = kmeans(ALL_ITEMS, 2, { seed: 42, runs: 5 });
+    const sizes = r.clusters.map((c) => c.size).sort((a, b) => a - b);
+    expect(sizes).toEqual([30, 60]);
+    expect(r.converged).toBe(true);
+    // All 30 CLUSTER_A items co-cluster.
+    const aIds = new Set(CLUSTER_A.map((x) => x.id));
+    const aClusters = new Set(
+      r.assignments.filter((a) => aIds.has(a.id)).map((a) => a.clusterId),
+    );
+    expect(aClusters.size).toBe(1);
+  });
+});
+
+describe("mixSeed", () => {
+  // Pinned bit-for-bit against the Rust port at
+  // metal/paradigmap-projector/src/kmeans.rs::mix_seed. Reference values
+  // computed once from the algorithm; if either backend changes, both
+  // tests must update together.
+  test("matches Rust reference values", () => {
+    expect(mixSeed64(42n, 2n, 0n)).toBe(0x761a44e8f7283712n);
+    expect(mixSeed64(42n, 2n, 1n)).toBe(0x89d075fba46d6161n);
+    expect(mixSeed64(42n, 3n, 0n)).toBe(0x18381731303afc2fn);
+    expect(mixSeed64(42n, 4n, 4n)).toBe(0xfdc88ab475753af2n);
+  });
+
+  test("public mixSeed folds 64 bits into a 32-bit safe integer", () => {
+    const v = mixSeed(42, 2, 0);
+    expect(Number.isInteger(v)).toBe(true);
+    expect(v).toBeGreaterThanOrEqual(0);
+    expect(v).toBeLessThanOrEqual(0xffffffff);
+    // (mixSeed64 ^ folded) parity check.
+    const mixed = mixSeed64(42n, 2n, 0n);
+    const lo = Number(mixed & 0xffffffffn);
+    const hi = Number((mixed >> 32n) & 0xffffffffn);
+    expect(v).toBe((lo ^ hi) >>> 0);
+  });
+
+  test("master=0 across runs produces distinct seeds (avalanche)", () => {
+    const seeds = new Set<number>();
+    for (let r = 0; r < 8; r++) seeds.add(mixSeed(0, 2, r));
+    expect(seeds.size).toBe(8);
+  });
+
+  // BigInt(3.14) throws RangeError. Truncating toward zero matches the old
+  // `createRng` `>>> 0` coercion and keeps mixSeed safe for float / NaN inputs.
+  test("non-integer inputs are truncated, not thrown", () => {
+    expect(() => mixSeed(3.14, 2, 0)).not.toThrow();
+    expect(mixSeed(3.14, 2, 0)).toBe(mixSeed(3, 2, 0));
+    expect(mixSeed(-2.9, 2, 0)).toBe(mixSeed(-2, 2, 0));
+    expect(() => mixSeed(Number.NaN, 2, 0)).not.toThrow();
+    expect(mixSeed(Number.NaN, 2, 0)).toBe(mixSeed(0, 2, 0));
   });
 });
 
